@@ -1,0 +1,34 @@
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap');
+
+*{box-sizing:border-box}
+html{background:#090a0e}
+body{margin:0;min-height:100vh;background:#090a0e;color:#f3eee4;font-family:'Poppins',sans-serif}
+button,input,textarea,select{font:inherit}
+button{cursor:pointer}
+.app{width:100%;max-width:760px;margin:0 auto;padding:20px 16px 110px}
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.logo{font-family:'Caveat',cursive;font-size:35px;font-weight:700;letter-spacing:.2px}
+.profile-button{width:43px;height:43px;border:1px solid #292d35;border-radius:50%;background:#151820;color:#f3eee4;font-size:18px}
+.intro{text-align:center;margin:2px 0 22px}.intro h1{margin:0;font-size:32px;line-height:1.1;font-weight:600;letter-spacing:-.8px}.intro p{margin:7px 0 0;color:#8e929c;font-size:14px}
+#wall{position:relative;min-height:570px;background:#13161d;border:1px solid #242831;border-radius:27px;overflow:hidden;box-shadow:0 22px 50px rgba(0,0,0,.35)}
+.wall-empty{position:absolute;inset:0;display:grid;place-items:center;padding:30px;text-align:center;color:#747985;font-size:14px}
+.polaroid{position:absolute;width:188px;min-height:218px;padding:11px 11px 24px;background:#f2eee4;color:#1b1b1b;border-radius:3px;box-shadow:0 18px 30px rgba(0,0,0,.45);text-align:center;overflow:visible}
+.polaroid img{width:100%;height:150px;display:block;object-fit:cover;border-radius:1px;margin-bottom:12px}
+.polaroid-caption{font-family:'Caveat',cursive;font-size:21px;font-weight:600;line-height:1.05;min-height:22px}
+.trash{position:absolute;right:7px;bottom:5px;border:0;background:transparent;color:#777;font-size:16px;opacity:.65;padding:2px 5px}
+.capture{position:fixed;right:max(20px,calc((100vw - 760px)/2 + 10px));bottom:83px;border:0;border-radius:999px;padding:14px 20px;background:#f2eee4;color:#101116;font-weight:600;font-size:15px;box-shadow:0 10px 26px rgba(0,0,0,.45);z-index:40}
+.capture:active{transform:scale(.97)}
+nav{position:fixed;left:0;right:0;bottom:0;height:67px;background:rgba(15,17,23,.97);border-top:1px solid #242831;display:flex;justify-content:center;gap:64px;align-items:center;z-index:50;backdrop-filter:blur(12px)}
+nav button{border:0;background:transparent;color:#858994;font-size:12px;display:flex;flex-direction:column;gap:3px;align-items:center;min-width:55px}nav button:first-letter{font-size:17px}
+.capture-panel{display:none;position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.7);align-items:flex-end;justify-content:center;padding:14px}.capture-panel.open{display:flex}
+.capture-box{width:min(100%,470px);max-height:90vh;overflow:auto;background:#14171e;border:1px solid #292d36;border-radius:27px;padding:27px 20px 22px;box-shadow:0 25px 70px rgba(0,0,0,.6);position:relative}.capture-box h2{margin:0 0 5px;font-size:25px}.capture-box>p{margin:0 0 22px;color:#858a95}.close-capture,.screen-back{border:0;background:transparent;color:#eee;font-size:20px}.close-capture{position:absolute;right:17px;top:16px}.capture-box label,#friendsScreen h3,#profileScreen label,#signupScreen label,#loginScreen label{display:block;margin:0 0 7px;font-size:13px;font-weight:600;color:#ddd8cf}
+#momentPhoto,#momentCaption,#shareFriend,#profileScreen input,#signupScreen input,#loginScreen input{width:100%;border:1px solid #2a2e38;border-radius:14px;padding:13px;background:#0c0e13;color:#f2ede4;outline:none;margin-bottom:15px}#momentCaption{min-height:92px;resize:none}#momentCaption:focus,#shareFriend:focus,input:focus{border-color:#666d79}
+#photoPreview{margin:-3px 0 16px}#photoPreview img{width:100%;max-height:270px;object-fit:cover;border-radius:15px;display:block}.word-count{text-align:right;color:#7f8490;font-size:12px;margin:-7px 2px 16px}.pin-button,#saveUsernameButton,#signupButton,#loginButton{width:100%;border:0;border-radius:15px;padding:14px;background:#f2eee4;color:#101116;font-weight:700}
+#friendsScreen,#profileScreen,#peekScreen{max-width:760px;margin:0 auto;padding:25px 16px 110px}#friendsScreen h2,#profileScreen h2,#peekScreen h2{font-size:29px;margin:0 0 18px}#friendsScreen h3{margin-top:28px;color:#898e99;font-size:13px;text-transform:uppercase;letter-spacing:.08em}
+#addFriendButton,#peekScreen>button,#profileScreen button:not(#saveUsernameButton),#friendRequests button,#sharedMomentRequests button,#friendsList button{border:1px solid #30343d;background:#171a21;color:#f1ede4;border-radius:12px;padding:10px 14px;font-size:13px}
+#friendRequests>div,#sharedMomentRequests>div,#friendsList>div{background:#14171e;border:1px solid #252932;border-radius:16px;padding:14px 15px;margin:10px 0;color:#eee}#friendRequests p,#sharedMomentRequests p,#friendsList p{margin:0 0 8px}#friendRequests button,#sharedMomentRequests button,#friendsList button{background:#f2eee4;color:#111;margin-right:7px;border:0;font-weight:600}
+#peekContent{position:relative;min-height:520px;background:#13161d;border:1px solid #242831;border-radius:25px;overflow:hidden;margin-top:15px}#peekContent .peek-card{position:relative!important;left:auto!important;top:auto!important;transform:none!important;margin:22px auto;width:min(188px,70%)}
+#profileScreen input{margin-top:7px}.screen-back{margin-bottom:25px;font-size:14px}
+#signupScreen,#loginScreen{position:fixed;inset:0;z-index:200;background:#090a0e;padding:32px 20px 100px;overflow:auto}#signupScreen h2,#loginScreen h2{max-width:470px;margin:0 auto 28px;font-size:27px}#signupScreen label,#signupScreen input,#signupScreen button,#loginScreen label,#loginScreen input,#loginScreen button{display:block;max-width:470px;margin-left:auto;margin-right:auto}#signupScreen input,#loginScreen input{background:#14171e}
+@media(max-width:600px){.app{padding:17px 12px 105px}.logo{font-size:32px}.intro h1{font-size:29px}#wall{min-height:535px;border-radius:23px}.polaroid{width:155px;min-height:184px;padding:9px 9px 21px}.polaroid img{height:124px;margin-bottom:9px}.polaroid-caption{font-size:18px}.capture{right:17px;bottom:80px;padding:13px 17px}nav{gap:30px}.capture-box{border-radius:25px 25px 18px 18px}}
+@media(min-width:601px){#wall .polaroid:nth-of-type(1){margin-left:0}}
