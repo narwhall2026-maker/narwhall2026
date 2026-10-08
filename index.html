@@ -10,10 +10,10 @@
   <main class="app">
     <header>
       <div class="logo">🐋 Narwhall</div>
-      <button class="profile-button" aria-label="Profile">👤</button>
+      <button id="profileButton" class="profile-button" aria-label="Profile">👤</button>
     </header>
 
-    <section class="intro">
+    <section id="intro" class="intro">
       <h1>my Moments!</h1>
       <p>are worth capturing</p>
     </section>
@@ -23,16 +23,17 @@
     </section>
   </main>
 
-  <button class="capture" onclick="openCapture()">📸 Capture</button>
+  <div id="appNotice" role="status" aria-live="polite" hidden></div>
+  <button id="captureButton" class="capture" onclick="openCapture()">📸 Capture</button>
 
   <div id="capturePanel" class="capture-panel">
-    <div class="capture-box">
+    <div class="capture-box" role="dialog" aria-modal="true" aria-label="Capture a moment">
       <button class="close-capture" onclick="closeCapture()" aria-label="Close">✕</button>
       <h2>Capture a moment</h2>
       <p>Something worth keeping?</p>
 
       <label for="momentPhoto">Your photo</label>
-      <input type="file" id="momentPhoto" accept="image/*" capture="environment">
+      <input type="file" id="momentPhoto" accept="image/*">
       <div id="photoPreview"></div>
 
       <label for="shareFriend">Share with a friend</label>
@@ -41,11 +42,11 @@
       </select>
 
       <label for="momentCaption">Your caption</label>
-      <textarea id="momentCaption" maxlength="15" placeholder="What's happening?"></textarea>
+      <textarea id="momentCaption" maxlength="30" placeholder="What's happening?"></textarea>
 
       <div class="word-count"><span id="wordCount">0</span>/15 characters</div>
 
-      <button class="pin-button" onclick="saveMoment()">✨ Pin moment</button>
+      <button id="pinButton" class="pin-button" onclick="saveMoment()">✨ Pin moment</button>
     </div>
   </div>
 
@@ -67,29 +68,33 @@
   </div>
 
   <nav>
-    <button onclick="showScreen('wall')">🏠 <span>Wall</span></button>
-    <button onclick="showScreen('friends')">👥 <span>Friends</span></button>
-    <button onclick="showScreen('profile')">👤 <span>Profile</span></button>
+    <button data-screen="wall" onclick="showScreen('wall')">🏠 <span>Wall</span></button>
+    <button data-screen="friends" onclick="showScreen('friends')">👥 <span>Friends</span></button>
+    <button data-screen="profile" onclick="showScreen('profile')">👤 <span>Profile</span></button>
   </nav>
 
   <section id="profileScreen" style="display: none;">
     <h2>Profile</h2>
+    <p id="accountStatus"></p>
     <label for="username">Username</label>
     <input id="username" type="text" placeholder="Choose a username">
     <button id="saveUsernameButton">Save username</button>
-    <button onclick="showScreen('signup')">🐋 Sign up</button>
-    <button onclick="showScreen('login')">🔑 Log in</button>
+    <div id="signedOutActions">
+      <button onclick="showScreen('signup')">🐋 Sign up</button>
+      <button onclick="showScreen('login')">🔑 Log in</button>
+    </div>
+    <button id="logoutButton" hidden>Log out</button>
   </section>
 
   <section id="signupScreen" style="display: none;">
     <button class="screen-back" onclick="showScreen('profile')">← Back</button>
     <h2>Create your Narwhal account 🐋</h2>
     <label for="signupEmail">Email</label>
-    <input id="signupEmail" type="email" placeholder="Your email">
+    <input id="signupEmail" type="email" autocomplete="email" placeholder="Your email" required>
     <label for="signupPassword">Password</label>
-    <input id="signupPassword" type="password" placeholder="Create a password">
+    <input id="signupPassword" type="password" autocomplete="new-password" minlength="8" placeholder="Create a password" required>
     <label for="signupUsername">Username</label>
-    <input id="signupUsername" type="text" placeholder="Choose a username">
+    <input id="signupUsername" type="text" autocomplete="username" minlength="3" maxlength="24" placeholder="Choose a username" required>
     <button id="signupButton">Create account</button>
   </section>
 
@@ -97,10 +102,18 @@
     <button class="screen-back" onclick="showScreen('profile')">← Back</button>
     <h2>Welcome back 🐋</h2>
     <label for="loginEmail">Email</label>
-    <input id="loginEmail" type="email" placeholder="Your email">
+    <input id="loginEmail" type="email" autocomplete="email" placeholder="Your email">
     <label for="loginPassword">Password</label>
-    <input id="loginPassword" type="password" placeholder="Your password">
+    <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Your password">
     <button id="loginButton">Log in</button>
+    <button id="resetPasswordButton" class="screen-back">Forgot password?</button>
+  </section>
+
+  <section id="resetScreen" style="display:none;">
+    <h2>Choose a new password</h2>
+    <label for="newPassword">New password</label>
+    <input id="newPassword" type="password" autocomplete="new-password" minlength="8">
+    <button id="newPasswordButton">Update password</button>
   </section>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

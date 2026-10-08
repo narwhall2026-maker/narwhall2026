@@ -1,6 +1,21 @@
 @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap');
 
 *{box-sizing:border-box}
+[hidden]{display:none!important}
+button:disabled{opacity:.5;cursor:wait}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid #f2eee4;outline-offset:3px}
+nav button.active{color:#f2eee4}
+#appNotice{position:fixed;top:10px;left:50%;transform:translateX(-50%);width:min(92%,470px);padding:13px 18px;border-radius:12px;background:#f2eee4;color:#101116;box-shadow:0 5px 22px #0008;z-index:300;font-size:13px;cursor:pointer}
+#appNotice.error{background:#ffe1d9;color:#772a17}
+.wall-message{padding:30px;color:#a4a9b4;text-align:center}
+.share-card{position:absolute;left:8px;bottom:3px;padding:3px;border:0;background:transparent;color:#555;font-size:10px}
+#resetScreen{position:fixed;inset:0;z-index:200;background:#090a0e;padding:60px 22px;overflow:auto}
+#resetScreen>*{display:block;width:min(100%,470px);margin:0 auto 18px}
+#resetScreen input{padding:14px;border-radius:12px;border:1px solid #30343d;background:#14171e;color:#eee}
+#resetScreen button{padding:14px;border:0;border-radius:14px;background:#f2eee4;color:#111}
+#accountStatus{color:#a4a9b4;font-size:14px}
+nav{padding-bottom:env(safe-area-inset-bottom);height:calc(67px + env(safe-area-inset-bottom))}
+.capture{bottom:calc(83px + env(safe-area-inset-bottom))}
 html{background:#090a0e}
 body{margin:0;min-height:100vh;background:#090a0e;color:#f3eee4;font-family:'Poppins',sans-serif}
 button,input,textarea,select{font:inherit}
@@ -32,3 +47,4 @@ nav button{border:0;background:transparent;color:#858994;font-size:12px;display:
 #signupScreen,#loginScreen{position:fixed;inset:0;z-index:200;background:#090a0e;padding:32px 20px 100px;overflow:auto}#signupScreen h2,#loginScreen h2{max-width:470px;margin:0 auto 28px;font-size:27px}#signupScreen label,#signupScreen input,#signupScreen button,#loginScreen label,#loginScreen input,#loginScreen button{display:block;max-width:470px;margin-left:auto;margin-right:auto}#signupScreen input,#loginScreen input{background:#14171e}
 @media(max-width:600px){.app{padding:17px 12px 105px}.logo{font-size:32px}.intro h1{font-size:29px}#wall{min-height:535px;border-radius:23px}.polaroid{width:155px;min-height:184px;padding:9px 9px 21px}.polaroid img{height:124px;margin-bottom:9px}.polaroid-caption{font-size:18px}.capture{right:17px;bottom:80px;padding:13px 17px}nav{gap:30px}.capture-box{border-radius:25px 25px 18px 18px}}
 @media(min-width:601px){#wall .polaroid:nth-of-type(1){margin-left:0}}
+

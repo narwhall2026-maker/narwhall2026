@@ -1,437 +1,219 @@
-const supabaseUrl = "https://ygqztfamrwrkoiyiuwmr.supabase.co";
-const supabaseKey = "sb_publishable_d5xpbwqtmuKGhbf8vEGO2w_N4gP0SdA";
-let supabaseClient = null;
-let selectedPhoto = null;
-let selectedPhotoUrl = null;
-const MAX_CAPTION_CHARS = 15;
-
-function chars(value) {
-  return Array.from(value || "").slice(0, MAX_CAPTION_CHARS).join("");
+const supabaseUrl = "https://vjugsidfdovuwtxgcvrz.supabase.co";
+const supabaseKey = "sb_publishable_Q_HeljHf6jSNZm7nONcazw_JIlEZRVS";
+const MEDIA = "https://narwhall-media.narwhall2026.workers.dev";
+const supabaseClient = window.supabase?.createClient(supabaseUrl, supabaseKey);
+let selectedPhoto = null, selectedPhotoUrl = null, saving = false, wallGeneration = 0;
+const imageUrls = new Set();
+const $ = id => document.getElementById(id);
+function notice(message, error=false) {
+  const box=$("appNotice"); box.textContent=message; box.classList.toggle("error",error); box.hidden=false;
 }
-
+function check(result) { if(result.error) throw result.error; return result.data; }
+async function action(task, button) {
+  if(button?.disabled) return;
+  if(button) button.disabled=true;
+  try { return await task(); } catch(error) { console.error(error); notice(error.message || "Something went wrong. Please try again.",true); }
+  finally { if(button) button.disabled=false; }
+}
+async function requireUser() {
+  if(!supabaseClient) throw new Error("Could not load the account service. Refresh to try again.");
+  const data=check(await supabaseClient.auth.getUser());
+  if(!data.user) throw new Error("Please log in first 🐋");
+  return data.user;
+}
+function clearImages(container) {
+  container.querySelectorAll("img").forEach(img=>{if(imageUrls.has(img.src)){URL.revokeObjectURL(img.src);imageUrls.delete(img.src);}});
+}
 function showScreen(screen) {
-  const ids = ["wall", "friendsScreen", "profileScreen", "peekScreen", "signupScreen", "loginScreen"];
-  ids.forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.style.display = "none";
-  });
-
-  if (screen === "wall") {
-    document.getElementById("wall").style.display = "block";
-    loadMoments();
-  } else if (screen === "friends") {
-    document.getElementById("friendsScreen").style.display = "block";
-    loadFriendRequests();
-    loadFriends();
-    loadSharedMomentRequests();
-  } else if (screen === "profile") {
-    document.getElementById("profileScreen").style.display = "block";
-    loadProfile();
-  } else {
-    const el = document.getElementById(screen + "Screen");
-    if (el) el.style.display = "block";
-  }
+  ["wall","friendsScreen","profileScreen","peekScreen","signupScreen","loginScreen","resetScreen"].forEach(id=>{if($(id)) $(id).style.display="none";});
+  const target=screen==="wall"?"wall":screen+"Screen"; if($(target)) $(target).style.display="block";
+  $("intro").hidden=screen!=="wall"; $("captureButton").hidden=screen!=="wall";
+  document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("active",b.dataset.screen===screen));
+  if(screen==="wall") action(loadMoments);
+  if(screen==="friends") action(async()=>{await Promise.all([loadFriendRequests(),loadFriends(),loadSharedMomentRequests()]);});
+  if(screen==="profile") action(loadProfile);
 }
-
-function handlePhotoSelect(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  selectedPhoto = file;
-  const preview = document.getElementById("photoPreview");
-  if (preview) {
-    if (selectedPhotoUrl) URL.revokeObjectURL(selectedPhotoUrl);
-    selectedPhotoUrl = URL.createObjectURL(file);
-    preview.innerHTML = `<img src="${selectedPhotoUrl}" alt="Photo preview">`;
-  }
-}
-
-if (window.supabase) {
-  supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
-}
-
-function openCapture() {
-  document.getElementById("capturePanel").classList.add("open");
-  document.getElementById("momentCaption").focus();
-  updateWordCount();
-  loadShareFriends();
-}
-
-function closeCapture() {
-  document.getElementById("capturePanel").classList.remove("open");
-}
-
 function updateWordCount() {
-  const input = document.getElementById("momentCaption");
-  if (!input) return;
-  const value = chars(input.value);
-  if (input.value !== value) input.value = value;
-  document.getElementById("wordCount").textContent = Array.from(value).length;
+  const input=$("momentCaption"); const value=Array.from(input.value).slice(0,15).join("");
+  input.value=value; $("wordCount").textContent=Array.from(value).length;
 }
-
-async function loadShareFriends() {
-  const shareFriend = document.getElementById("shareFriend");
-  if (!shareFriend || !supabaseClient) return;
-  const { data: { user } } = await supabaseClient.auth.getUser();
-  if (!user) return;
-  const { data: profile, error: profileError } = await supabaseClient.from("profiles").select("username").eq("id", user.id).single();
-  if (profileError) return console.error(profileError);
-  const { data: requests, error } = await supabaseClient.from("friend_requests").select("*").eq("status", "accepted").or(`sender_username.ilike.${profile.username},receiver_username.ilike.${profile.username}`);
-  if (error) return console.error(error);
-  shareFriend.innerHTML = '<option value="">Just me</option>';
-  (requests || []).forEach(request => {
-    const friend = request.sender_username.toLowerCase() === profile.username.toLowerCase() ? request.receiver_username : request.sender_username;
-    const option = document.createElement("option");
-    option.value = friend;
-    option.textContent = friend;
-    shareFriend.appendChild(option);
-  });
+async function compressPhoto(file) {
+  if(!file.type.startsWith("image/")) throw new Error("Choose an image file.");
+  if(file.size>20*1024*1024) throw new Error("Choose a photo smaller than 20 MB.");
+  const url=URL.createObjectURL(file);
+  try {
+    const image=new Image();image.src=url;await image.decode();
+    const scale=Math.min(1,1600/Math.max(image.naturalWidth,image.naturalHeight));
+    const canvas=document.createElement("canvas");canvas.width=Math.round(image.naturalWidth*scale);canvas.height=Math.round(image.naturalHeight*scale);
+    const context=canvas.getContext("2d");context.fillStyle="#fff";context.fillRect(0,0,canvas.width,canvas.height);context.drawImage(image,0,0,canvas.width,canvas.height);
+    const blob=await new Promise(resolve=>canvas.toBlob(resolve,"image/jpeg",0.82));
+    if(!blob || blob.size>2*1024*1024) throw new Error("This photo is too large. Try a smaller image.");
+    return blob;
+  } catch(e) { if(e.name==="EncodingError") throw new Error("Your browser cannot open this image. Try a JPEG or PNG."); throw e; }
+  finally {URL.revokeObjectURL(url);}
 }
-
+let photoSelection=0;
+async function handlePhotoSelect(event) {
+  const generation=++photoSelection; const file=event.target.files[0]; selectedPhoto=null;
+  if(selectedPhotoUrl) URL.revokeObjectURL(selectedPhotoUrl); selectedPhotoUrl=null;$("photoPreview").replaceChildren();
+  if(!file) return;
+  $("pinButton").disabled=true;
+  try { const blob=await compressPhoto(file); if(generation!==photoSelection) return;
+    selectedPhoto=blob;selectedPhotoUrl=URL.createObjectURL(blob);
+    const image=document.createElement("img");image.src=selectedPhotoUrl;image.alt="Photo preview";$("photoPreview").append(image);
+  } finally {if(generation===photoSelection) $("pinButton").disabled=false;}
+}
+function openCapture() { action(async()=>{await requireUser();$("capturePanel").classList.add("open");$("momentCaption").focus();updateWordCount();await loadShareFriends();}); }
+function closeCapture() { $("capturePanel").classList.remove("open");$("captureButton").focus(); }
+async function mediaRequest(path, options={}) {
+  const session=check(await supabaseClient.auth.getSession()).session;
+  if(!session) throw new Error("Please log in first.");
+  const response=await fetch(MEDIA+path,{...options,headers:{...options.headers,Authorization:"Bearer "+session.access_token}});
+  if(!response.ok) {let message="Photo service is unavailable.";try{message=(await response.json()).error || message;}catch{}throw new Error(message);}
+  return response;
+}
+async function photoUrl(key) {
+  const response=await mediaRequest("/photo/"+key);
+  const url=URL.createObjectURL(await response.blob());imageUrls.add(url);return url;
+}
 async function saveMoment() {
-  const captionInput = document.getElementById("momentCaption");
-  const caption = chars(captionInput.value.trim());
-  captionInput.value = caption;
-  if (!selectedPhoto) return alert("Add a photo first 🐋");
-  if (!caption) return alert("Add a caption first 🐋");
-  if (Array.from(caption).length > MAX_CAPTION_CHARS) return alert("Keep your caption to 15 characters or less 🐋");
-
-  const { data: { user } } = await supabaseClient.auth.getUser();
-  if (!user) return alert("Please log in first 🐋");
-
-  const fileName = Date.now() + "-" + selectedPhoto.name.replace(/[^a-zA-Z0-9.-]/g, "-");
-  const { error: uploadError } = await supabaseClient.storage.from("moments").upload(fileName, selectedPhoto);
-  if (uploadError) {
-    console.error(uploadError);
-    return alert("Couldn't upload your photo yet.");
-  }
-
-  const { data: savedMoment, error: databaseError } = await supabaseClient.from("moments").insert({
-    user_id: user.id,
-    caption,
-    photo_url: fileName,
-    position_x: Math.floor(Math.random() * 55) + 8,
-    position_y: Math.floor(Math.random() * 55) + 8,
-    rotation: Math.floor(Math.random() * 13) - 6
-  }).select().single();
-
-  if (databaseError) {
-    console.error(databaseError);
-    return alert("Photo uploaded, but the moment couldn't be saved.");
-  }
-
-  const shareFriend = document.getElementById("shareFriend").value;
-  if (shareFriend) {
-    const { data: friendProfile, error: friendError } = await supabaseClient.from("profiles").select("id").ilike("username", shareFriend).single();
-    if (friendError) return alert("Moment saved, but your friend couldn't be found.");
-    const { error: shareError } = await supabaseClient.from("shared_moments").insert({ moment_id: savedMoment.id, from_user_id: user.id, to_user_id: friendProfile.id, status: "pending" });
-    if (shareError) return alert("Moment saved, but the friend request couldn't be sent.");
-  }
-
-  alert("Moment saved! 🐋");
-  document.getElementById("momentCaption").value = "";
-  document.getElementById("momentPhoto").value = "";
-  document.getElementById("photoPreview").innerHTML = "";
-  if (selectedPhotoUrl) URL.revokeObjectURL(selectedPhotoUrl);
-  selectedPhoto = null;
-  selectedPhotoUrl = null;
-  updateWordCount();
-  closeCapture();
-  loadMoments();
-}
-
-async function loadMoments() {
-  if (!supabaseClient) return;
-  const { data: { user } } = await supabaseClient.auth.getUser();
-  if (!user) return;
-  const { data, error } = await supabaseClient.from("moments").select("*").eq("user_id", user.id).is("deleted_at", null).order("created_at", { ascending: false });
-  if (error) return console.error("Couldn't load moments:", error);
-  const wall = document.getElementById("wall");
-  if (!wall) return;
-  wall.innerHTML = "";
-  if (!data || data.length === 0) {
-    wall.innerHTML = '<div class="wall-empty">Your first moment is waiting to be captured ✦</div>';
-    return;
-  }
-
-  for (let i = 0; i < data.length; i++) {
-    const moment = data[i];
-    const polaroid = document.createElement("div");
-    polaroid.className = "polaroid";
-    polaroid.style.zIndex = data.length - i;
-    polaroid.style.left = Math.min(moment.position_x ?? 10, 70) + "%";
-    polaroid.style.top = Math.min(moment.position_y ?? 10, 60) + "%";
-    polaroid.style.transform = `rotate(${moment.rotation ?? 0}deg)`;
-    polaroid.style.cursor = "grab";
-    polaroid.style.touchAction = "none";
-
-    const image = document.createElement("img");
-    image.alt = "Moment photo";
-    const { data: signedUrlData, error: signedUrlError } = await supabaseClient.storage.from("moments").createSignedUrl(moment.photo_url, 60 * 60);
-    if (signedUrlError) continue;
-    image.src = signedUrlData.signedUrl;
-
-    const caption = document.createElement("div");
-    caption.className = "polaroid-caption";
-    caption.textContent = moment.caption || "";
-
-    const deleteButton = document.createElement("button");
-    deleteButton.className = "trash";
-    deleteButton.textContent = "×";
-    deleteButton.title = "Hide moment";
-    deleteButton.addEventListener("click", async event => {
-      event.stopPropagation();
-      if (!confirm("Hide this moment from your wall?")) return;
-      const { error: deleteError } = await supabaseClient.from("moments").update({ deleted_at: new Date().toISOString() }).eq("id", moment.id).eq("user_id", user.id);
-      if (deleteError) return alert("Couldn't delete that moment.");
-      loadMoments();
-    });
-
-    polaroid.appendChild(image);
-    polaroid.appendChild(caption);
-    polaroid.appendChild(deleteButton);
-    wall.appendChild(polaroid);
-    enableDrag(polaroid, wall, moment, user);
-  }
-}
-
-function enableDrag(polaroid, wall, moment, user) {
-  let dragging = false, startX = 0, startY = 0, originalLeft = moment.position_x || 10, originalTop = moment.position_y || 10;
-  function startDrag(x, y) { dragging = true; startX = x; startY = y; originalLeft = parseFloat(polaroid.style.left); originalTop = parseFloat(polaroid.style.top); polaroid.style.cursor = "grabbing"; polaroid.style.zIndex = 9999; }
-  function moveDrag(x, y) {
-    if (!dragging) return;
-    const rect = wall.getBoundingClientRect();
-    const newLeft = Math.max(0, Math.min(75, originalLeft + ((x - startX) / rect.width) * 100));
-    const newTop = Math.max(0, Math.min(70, originalTop + ((y - startY) / rect.height) * 100));
-    polaroid.style.left = newLeft + "%";
-    polaroid.style.top = newTop + "%";
-  }
-  async function endDrag() {
-    if (!dragging) return;
-    dragging = false;
-    polaroid.style.cursor = "grab";
-    const { error } = await supabaseClient.from("moments").update({ position_x: Math.round(parseFloat(polaroid.style.left)), position_y: Math.round(parseFloat(polaroid.style.top)) }).eq("id", moment.id).eq("user_id", user.id);
-    if (error) console.error("Couldn't save photo position:", error);
-  }
-  polaroid.addEventListener("mousedown", e => { if (e.target.closest(".trash")) return; e.preventDefault(); startDrag(e.clientX, e.clientY); });
-  const move = e => moveDrag(e.clientX, e.clientY);
-  const up = () => endDrag();
-  document.addEventListener("mousemove", move);
-  document.addEventListener("mouseup", up);
-  polaroid.addEventListener("touchstart", e => { if (e.target.closest(".trash")) return; const t = e.touches[0]; startDrag(t.clientX, t.clientY); }, { passive: true });
-  polaroid.addEventListener("touchmove", e => { if (!dragging) return; const t = e.touches[0]; moveDrag(t.clientX, t.clientY); }, { passive: true });
-  polaroid.addEventListener("touchend", endDrag);
-}
-
-async function loadProfile() {
-  if (!supabaseClient) return;
-  const { data: { user } } = await supabaseClient.auth.getUser();
-  if (!user) return;
-  const { data } = await supabaseClient.from("profiles").select("username, display_name").eq("id", user.id).single();
-  if (data) document.getElementById("username").value = data.username || "";
-}
-
-async function saveUsername() {
-  if (!supabaseClient) return;
-  const username = document.getElementById("username").value.trim().toLowerCase();
-  if (!username) return alert("Please choose a username 🐋");
-  const { data: { user } } = await supabaseClient.auth.getUser();
-  if (!user) return alert("Please log in first 🐋");
-  const { error } = await supabaseClient.from("profiles").upsert({ id: user.id, username });
-  if (error) return alert("Couldn't save username.");
-  alert("Username saved 🐋");
-}
-
-async function signup() {
-  const email = document.getElementById("signupEmail").value.trim();
-  const password = document.getElementById("signupPassword").value;
-  const username = document.getElementById("signupUsername").value.trim().toLowerCase();
-  if (!email || !password || !username) return alert("Please fill everything in 🐋");
-  const { data, error } = await supabaseClient.auth.signUp({ email, password });
-  if (error) return alert(error.message);
-  if (!data.user) return alert("Please check your email to confirm your account.");
-  const { error: profileError } = await supabaseClient.from("profiles").upsert({ id: data.user.id, username });
-  if (profileError) return alert("Account created, but username could not be saved.");
-  alert("Account created 🐋");
-  showScreen("profile");
-  await loadProfile();
-}
-
-async function login() {
-  const email = document.getElementById("loginEmail").value.trim();
-  const password = document.getElementById("loginPassword").value;
-  if (!email || !password) return alert("Please enter your email and password.");
-  const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-  if (error) return alert(error.message);
-  alert("Logged in 🐋");
-  showScreen("wall");
-  await loadProfile();
-  await loadMoments();
-  await loadFriendRequests();
-  await loadFriends();
-}
-
-async function addFriend() {
-  const username = prompt("Enter your friend's username:");
-  if (!username) return;
-  const { data: { user } } = await supabaseClient.auth.getUser();
-  if (!user) return alert("Please log in first 🐋");
-  const { data: profile } = await supabaseClient.from("profiles").select("username").ilike("username", username.trim()).maybeSingle();
-  if (!profile) return alert("Couldn't find that username.");
-  const { data: senderProfile } = await supabaseClient.from("profiles").select("username").eq("id", user.id).single();
-  if (!senderProfile) return alert("Please save your username first.");
-  const { error } = await supabaseClient.from("friend_requests").insert({ sender_username: senderProfile.username, receiver_username: profile.username, status: "pending" });
-  if (error) return alert("Couldn't send friend request.");
-  alert("Friend request sent 🐋");
-  loadFriendRequests();
-}
-
-async function loadFriendRequests() {
-  const container = document.getElementById("friendRequests");
-  if (!container || !supabaseClient) return;
-  const { data: { user } } = await supabaseClient.auth.getUser();
-  if (!user) return container.innerHTML = "<p>Please log in first.</p>";
-  const { data: profile } = await supabaseClient.from("profiles").select("username").eq("id", user.id).single();
-  if (!profile) return container.innerHTML = "<p>Save your username first.</p>";
-  const { data, error } = await supabaseClient.from("friend_requests").select("*").ilike("receiver_username", profile.username).order("created_at", { ascending: false });
-  if (error) return container.innerHTML = "<p>Couldn't load requests.</p>";
-  const pending = (data || []).filter(r => r.status === "pending");
-  if (!pending.length) return container.innerHTML = "<p>No friend requests yet.</p>";
-  container.innerHTML = "";
-  pending.forEach(request => {
-    const box = document.createElement("div");
-    box.innerHTML = `<p><strong>${request.sender_username}</strong> wants to be your friend.</p><button onclick="acceptFriend(${request.id})">Accept</button><button onclick="declineFriend(${request.id})">Decline</button>`;
-    container.appendChild(box);
-  });
-}
-
-async function acceptFriend(id) {
-  const { error } = await supabaseClient.from("friend_requests").update({ status: "accepted" }).eq("id", id);
-  if (error) return alert("Couldn't accept friend request.");
-  alert("Friend added 🐋");
-  loadFriendRequests();
-  loadFriends();
-}
-
-async function declineFriend(id) {
-  const { error } = await supabaseClient.from("friend_requests").update({ status: "declined" }).eq("id", id);
-  if (error) return alert("Couldn't decline request.");
-  loadFriendRequests();
-}
-
-async function loadFriends() {
-  const container = document.getElementById("friendsList");
-  if (!container || !supabaseClient) return;
-  const { data: { user } } = await supabaseClient.auth.getUser();
-  if (!user) return container.innerHTML = "<p>Please log in first.</p>";
-  const { data: profile } = await supabaseClient.from("profiles").select("username").eq("id", user.id).single();
-  if (!profile) return;
-  const { data: sent } = await supabaseClient.from("friend_requests").select("*").ilike("sender_username", profile.username).eq("status", "accepted");
-  const { data: received } = await supabaseClient.from("friend_requests").select("*").ilike("receiver_username", profile.username).eq("status", "accepted");
-  const friends = [...(sent || []).map(r => r.receiver_username), ...(received || []).map(r => r.sender_username)];
-  const uniqueFriends = [...new Set(friends)];
-  if (!uniqueFriends.length) return container.innerHTML = "<p>No friends yet 🐋</p>";
-  container.innerHTML = "";
-  uniqueFriends.forEach(friend => {
-    const box = document.createElement("div");
-    const p = document.createElement("p");
-    p.innerHTML = `<strong>${friend}</strong>`;
-    const button = document.createElement("button");
-    button.textContent = "👀 Peek";
-    button.onclick = () => openPeek(friend);
-    p.appendChild(button);
-    box.appendChild(p);
-    container.appendChild(box);
-  });
-}
-
-async function openPeek(friendUsername) {
-  showScreen("peek");
-  document.getElementById("peekTitle").textContent = `${friendUsername}'s Wall 👀`;
-  const content = document.getElementById("peekContent");
-  content.innerHTML = "<p>Loading their wall...</p>";
-  const { data: friendProfile } = await supabaseClient.from("profiles").select("id").ilike("username", friendUsername).maybeSingle();
-  if (!friendProfile) return content.innerHTML = "<p>Couldn't find that wall.</p>";
-  const { data: moments, error } = await supabaseClient.from("moments").select("*").eq("user_id", friendProfile.id).is("deleted_at", null).order("created_at", { ascending: false }).limit(10);
-  if (error) return content.innerHTML = "<p>Couldn't load their wall.</p>";
-  if (!moments?.length) return content.innerHTML = "<p>No moments to peek at yet 🐋</p>";
-  content.innerHTML = "";
-  for (const moment of moments) {
-    const card = document.createElement("div");
-    card.className = "polaroid peek-card";
-    const { data: signedData } = await supabaseClient.storage.from("moments").createSignedUrl(moment.photo_url, 3600);
-    if (signedData?.signedUrl) {
-      const img = document.createElement("img");
-      img.src = signedData.signedUrl;
-      img.alt = "Shared moment";
-      card.appendChild(img);
+  if(saving) return; saving=true;
+  try {await action(async()=>{
+    const user=await requireUser();const caption=$("momentCaption").value.trim();
+    if(!selectedPhoto) throw new Error("Add a photo first 🐋");
+    if(!caption || Array.from(caption).length>15) throw new Error("Add a caption of 1–15 characters.");
+    const upload=await (await mediaRequest("/upload",{method:"PUT",body:selectedPhoto,headers:{"Content-Type":"image/jpeg"}})).json();
+    const moment=check(await supabaseClient.from("moments").insert({user_id:user.id,caption,photo_url:upload.key,position_x:5+Math.random()*35,position_y:5+Math.random()*40,rotation:Math.random()*12-6}).select().single());
+    const friend=$("shareFriend").value;let message="Moment saved! 🐋";
+    if(friend) {
+      const result=await supabaseClient.from("shared_moments").insert({moment_id:moment.id,from_user_id:user.id,to_user_id:friend});
+      if(result.error) message="Moment saved. Sharing failed — you can retry with Share on the card.";
     }
-    const p = document.createElement("p");
-    p.textContent = moment.caption || "";
-    card.appendChild(p);
-    content.appendChild(card);
-  }
+    selectedPhoto=null;if(selectedPhotoUrl) URL.revokeObjectURL(selectedPhotoUrl);selectedPhotoUrl=null;
+    $("momentPhoto").value="";$("momentCaption").value="";$("photoPreview").replaceChildren();updateWordCount();closeCapture();notice(message);await loadMoments();
+  },$("pinButton"));} finally {saving=false;}
 }
-
-function closePeek() { showScreen("friends"); }
-
+function empty(container, message) { clearImages(container);container.replaceChildren();const p=document.createElement("p");p.className="wall-message";p.textContent=message;container.append(p); }
+async function loadMoments() {
+  const generation=++wallGeneration;const wall=$("wall");
+  const session=check(await supabaseClient.auth.getSession()).session;
+  if(!session) {empty(wall,"Log in or sign up to start your wall 🐋");return;}
+  const moments=check(await supabaseClient.from("moments").select("*").eq("user_id",session.user.id).is("deleted_at",null).order("created_at",{ascending:false}));
+  if(generation!==wallGeneration) return;
+  empty(wall,moments.length?"Loading your photos…":"Your first moment is waiting to be captured ✦");
+  if(!moments.length) return;
+  const cards=await Promise.all(moments.map(async m=>{try{return await makeCard(m,wall,true);}catch(e){return {error:e};}}));
+  if(generation!==wallGeneration) {cards.forEach(c=>{if(c instanceof Element)clearImages(c);});return;}
+  wall.replaceChildren();
+  cards.forEach(c=>{if(c instanceof Element)wall.append(c);});
+  if(cards.some(c=>c.error)) notice("Some photos could not load. Refresh your wall to try again.",true);
+}
+async function makeCard(moment,container,editable=false) {
+  const card=document.createElement("div");card.className="polaroid";
+  const img=document.createElement("img");img.alt=moment.caption;img.draggable=false;img.src=await photoUrl(moment.photo_url);
+  const caption=document.createElement("div");caption.className="polaroid-caption";caption.textContent=moment.caption;
+  card.append(img,caption);
+  if(editable) {
+    const remove=document.createElement("button");remove.className="trash";remove.textContent="×";remove.title="Hide moment";remove.setAttribute("aria-label","Hide "+moment.caption);
+    remove.onclick=()=>action(async()=>{if(!confirm("Hide this moment from your wall?"))return;check(await supabaseClient.from("moments").update({deleted_at:new Date().toISOString()}).eq("id",moment.id).select("id").single());await loadMoments();},remove);
+    const share=document.createElement("button");share.className="share-card";share.textContent="Share";share.onclick=()=>action(async()=>{const user=await requireUser();const username=prompt("Share with which friend's username?");if(!username)return;const friend=check(await supabaseClient.from("profiles").select("id").eq("username",username.trim().toLowerCase()).single());check(await supabaseClient.from("shared_moments").insert({moment_id:moment.id,from_user_id:user.id,to_user_id:friend.id}));notice("Moment shared 🐋");},share);
+    card.append(remove,share);card.style.left=moment.position_x+"%";card.style.top=moment.position_y+"%";card.style.transform="rotate("+moment.rotation+"deg)";enableDrag(card,container,moment);
+  } else card.classList.add("peek-card");
+  return card;
+}
+function enableDrag(card,wall,moment) {
+  let drag=null;
+  const clamp=()=>{const xMax=Math.max(0,(wall.clientWidth-card.offsetWidth-8)/wall.clientWidth*100);const yMax=Math.max(0,(wall.clientHeight-card.offsetHeight-8)/wall.clientHeight*100);card.style.left=Math.min(parseFloat(card.style.left),xMax)+"%";card.style.top=Math.min(parseFloat(card.style.top),yMax)+"%";};
+  requestAnimationFrame(clamp);
+  card.style.touchAction="none";
+  card.onpointerdown=e=>{if(e.target.closest("button") || e.button!==0)return;e.preventDefault();drag={id:e.pointerId,x:e.clientX,y:e.clientY,left:parseFloat(card.style.left),top:parseFloat(card.style.top)};card.setPointerCapture(e.pointerId);card.style.zIndex=9999;card.style.cursor="grabbing";};
+  card.onpointermove=e=>{if(!drag || drag.id!==e.pointerId)return;const r=wall.getBoundingClientRect();const maxX=Math.max(0,100-(card.offsetWidth+8)/r.width*100);const maxY=Math.max(0,100-(card.offsetHeight+8)/r.height*100);card.style.left=Math.max(0,Math.min(maxX,drag.left+(e.clientX-drag.x)/r.width*100))+"%";card.style.top=Math.max(0,Math.min(maxY,drag.top+(e.clientY-drag.y)/r.height*100))+"%";};
+  const end=e=>{if(!drag || e.pointerId!==drag.id)return;drag=null;card.style.cursor="grab";action(async()=>{check(await supabaseClient.from("moments").update({position_x:parseFloat(card.style.left),position_y:parseFloat(card.style.top)}).eq("id",moment.id).select("id").single());});};
+  card.onpointerup=end;card.onpointercancel=end;
+}
+async function profileMap(ids) {if(!ids.length)return new Map();const rows=check(await supabaseClient.from("profiles").select("id,username").in("id",[...new Set(ids)]));return new Map(rows.map(p=>[p.id,p.username]));}
+async function friendships() {const user=await requireUser();return {user,rows:check(await supabaseClient.from("friend_requests").select("*").or("sender_id.eq."+user.id+",receiver_id.eq."+user.id).eq("status","accepted"))};}
+async function loadShareFriends() {
+  const {user,rows}=await friendships();const ids=rows.map(r=>r.sender_id===user.id?r.receiver_id:r.sender_id);const profiles=await profileMap(ids);
+  $("shareFriend").replaceChildren(new Option("Just me",""));ids.forEach(id=>$("shareFriend").add(new Option(profiles.get(id) || "Friend",id)));
+}
+async function loadProfile() {
+  const session=check(await supabaseClient.auth.getSession()).session;
+  $("accountStatus").textContent=session?"Logged in as "+session.user.email:"Create an account to keep your moments.";
+  $("signedOutActions").hidden=!!session;$("logoutButton").hidden=!session;$("username").disabled=!session;$("saveUsernameButton").disabled=!session;
+  if(session){const profile=check(await supabaseClient.from("profiles").select("username").eq("id",session.user.id).single());$("username").value=profile.username;}else $("username").value="";
+}
+async function saveUsername() {const user=await requireUser();const username=$("username").value.trim().toLowerCase();validateUsername(username);check(await supabaseClient.from("profiles").update({username}).eq("id",user.id).select("id").single());notice("Username saved 🐋");}
+function validateUsername(username) {if(!/^[a-z0-9_]{3,24}$/.test(username))throw new Error("Use 3–24 letters, numbers, or underscores for your username.");}
+async function signup() {
+  const email=$("signupEmail").value.trim(),password=$("signupPassword").value,username=$("signupUsername").value.trim().toLowerCase();
+  validateUsername(username);if(!email || password.length<8)throw new Error("Enter your email and a password of at least 8 characters.");
+  const data=check(await supabaseClient.auth.signUp({email,password,options:{data:{username},emailRedirectTo:location.origin}}));
+  $("signupPassword").value="";
+  if(data.session){showScreen("wall");notice("Account created 🐋");}else{showScreen("login");notice("Check your email to confirm your account, then log in.");}
+}
+async function login() {
+  const email=$("loginEmail").value.trim(),password=$("loginPassword").value;if(!email||!password)throw new Error("Enter your email and password.");
+  check(await supabaseClient.auth.signInWithPassword({email,password}));$("loginPassword").value="";showScreen("wall");notice("Welcome back 🐋");
+}
+async function logout() {check(await supabaseClient.auth.signOut());wallGeneration++;clearImages($("wall"));clearImages($("peekContent"));empty($("wall"),"Log in to see your moments 🐋");showScreen("profile");notice("Logged out.");}
+async function resetPassword() {const email=$("loginEmail").value.trim();if(!email)throw new Error("Enter your email first.");check(await supabaseClient.auth.resetPasswordForEmail(email,{redirectTo:location.origin}));notice("Check your email for a password reset link.");}
+async function updatePassword() {const password=$("newPassword").value;if(password.length<8)throw new Error("Use at least 8 characters.");check(await supabaseClient.auth.updateUser({password}));$("newPassword").value="";showScreen("wall");notice("Password updated.");}
+async function addFriend() {
+  const user=await requireUser();const username=prompt("Enter your friend's username:");if(!username)return;
+  const friend=check(await supabaseClient.from("profiles").select("id").eq("username",username.trim().toLowerCase()).maybeSingle());
+  if(!friend)throw new Error("Couldn't find that username.");if(friend.id===user.id)throw new Error("That's your own username.");
+  check(await supabaseClient.from("friend_requests").insert({sender_id:user.id,receiver_id:friend.id}));notice("Friend request sent 🐋");await loadFriendRequests();
+}
+function row(container,text,buttons=[]) {const box=document.createElement("div"),p=document.createElement("p");p.textContent=text;box.append(p);buttons.forEach(([label,task])=>{const b=document.createElement("button");b.textContent=label;b.onclick=()=>action(task,b);box.append(b);});container.append(box);}
+async function loadFriendRequests() {
+  const container=$("friendRequests");const session=check(await supabaseClient.auth.getSession()).session;if(!session){empty(container,"Please log in first.");return;}
+  const rows=check(await supabaseClient.from("friend_requests").select("*").eq("receiver_id",session.user.id).eq("status","pending").order("created_at",{ascending:false}));
+  const profiles=await profileMap(rows.map(r=>r.sender_id));container.replaceChildren();
+  if(!rows.length)row(container,"No friend requests yet.");
+  rows.forEach(r=>row(container,(profiles.get(r.sender_id)||"Someone")+" wants to be your friend.",[["Accept",()=>replyFriend(r.id,"accepted")],["Decline",()=>replyFriend(r.id,"declined")]]));
+}
+async function replyFriend(id,status) {check(await supabaseClient.from("friend_requests").update({status}).eq("id",id).select("id").single());await Promise.all([loadFriendRequests(),loadFriends()]);}
+async function loadFriends() {
+  const container=$("friendsList");const session=check(await supabaseClient.auth.getSession()).session;if(!session){empty(container,"Please log in first.");return;}
+  const {user,rows}=await friendships();const ids=rows.map(r=>r.sender_id===user.id?r.receiver_id:r.sender_id);const profiles=await profileMap(ids);
+  const peeks=check(await supabaseClient.from("wall_peeks").select("owner_id,expires_at").eq("viewer_id",user.id).gt("expires_at",new Date().toISOString()));const owners=new Set(peeks.map(p=>p.owner_id));
+  container.replaceChildren();if(!ids.length)row(container,"No friends yet 🐋");
+  ids.forEach(id=>row(container,profiles.get(id)||"Friend",owners.has(id)?[["👀 Peek",()=>openPeek(id,profiles.get(id))]]:[]));
+  if(ids.length)row(container,"Accept a shared moment to unlock a 24-hour peek at your friend's wall.");
+}
+async function openPeek(id,username) {
+  const user=await requireUser();const peeks=check(await supabaseClient.from("wall_peeks").select("expires_at").eq("owner_id",id).eq("viewer_id",user.id).gt("expires_at",new Date().toISOString()).limit(1));
+  if(!peeks.length)throw new Error("This peek has expired. Accept a new shared moment to unlock it.");
+  showScreen("peek");$("peekTitle").textContent=(username||"Friend")+"'s Wall 👀";
+  const content=$("peekContent");empty(content,"Loading their wall…");
+  const moments=check(await supabaseClient.from("moments").select("*").eq("user_id",id).is("deleted_at",null).order("created_at",{ascending:false}).limit(10));
+  if(!moments.length){empty(content,"No moments to peek at yet 🐋");return;}
+  const cards=await Promise.all(moments.map(m=>makeCard(m,content)));content.replaceChildren(...cards);
+}
+function closePeek() {clearImages($("peekContent"));$("peekContent").replaceChildren();showScreen("friends");}
 async function loadSharedMomentRequests() {
-  const container = document.getElementById("sharedMomentRequests");
-  if (!container || !supabaseClient) return;
-  const { data: { user } } = await supabaseClient.auth.getUser();
-  if (!user) return container.innerHTML = "<p>Please log in first.</p>";
-  const { data, error } = await supabaseClient.from("shared_moments").select("*").or(`to_user_id.eq.${user.id},from_user_id.eq.${user.id}`).order("created_at", { ascending: false });
-  if (error) return container.innerHTML = "<p>Couldn't load shared moments.</p>";
-  if (!data?.length) return container.innerHTML = "<p>No shared moments yet 🐋</p>";
-  container.innerHTML = "";
-  data.forEach(request => {
-    const box = document.createElement("div");
-    if (request.to_user_id === user.id && request.status === "pending") box.innerHTML = `<p>Someone shared a moment with you 🐋</p><button onclick="acceptSharedMoment('${request.id}')">Accept</button><button onclick="declineSharedMoment('${request.id}')">Decline</button>`;
-    else if (request.to_user_id === user.id && request.status === "accepted") box.innerHTML = `<p>🐋 Shared moment accepted!</p><p>This moment is pinned to your wall.</p>`;
-    else if (request.from_user_id === user.id && request.status === "accepted") box.innerHTML = `<p>🐋 Your shared moment was accepted!</p><p>The moment is now pinned to their wall.</p>`;
-    else if (request.from_user_id === user.id && request.status === "declined") box.innerHTML = `<p>Shared moment was declined.</p>`;
-    else return;
-    container.appendChild(box);
+  const container=$("sharedMomentRequests");const session=check(await supabaseClient.auth.getSession()).session;if(!session){empty(container,"Please log in first.");return;}
+  const rows=check(await supabaseClient.from("shared_moments").select("*").or("to_user_id.eq."+session.user.id+",from_user_id.eq."+session.user.id).order("created_at",{ascending:false}));
+  const profiles=await profileMap(rows.flatMap(r=>[r.from_user_id,r.to_user_id]));container.replaceChildren();if(!rows.length)row(container,"No shared moments yet 🐋");
+  rows.forEach(r=>{const incoming=r.to_user_id===session.user.id;const other=profiles.get(incoming?r.from_user_id:r.to_user_id)||"Friend";
+    if(incoming && r.status==="pending")row(container,other+" shared a moment with you.",[["Accept",()=>replyShared(r.id,true)],["Decline",()=>replyShared(r.id,false)]]);
+    else row(container,incoming?other+"'s shared moment: "+r.status:"Shared with "+other+": "+r.status);
   });
 }
-
-async function acceptSharedMoment(id) {
-  const { data: request } = await supabaseClient.from("shared_moments").select("*").eq("id", id).single();
-  if (!request) return alert("Couldn't find that shared moment.");
-  const { data: originalMoment } = await supabaseClient.from("moments").select("*").eq("id", request.moment_id).single();
-  if (!originalMoment) return alert("Couldn't find the shared photo.");
-  const { data: { user } } = await supabaseClient.auth.getUser();
-  if (!user) return alert("Please log in first.");
-  const { error: copyError } = await supabaseClient.from("moments").insert({ user_id: user.id, caption: originalMoment.caption, photo_url: originalMoment.photo_url, position_x: originalMoment.position_x, position_y: originalMoment.position_y, rotation: originalMoment.rotation });
-  if (copyError) return alert("Couldn't pin the shared moment.");
-  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-  const { error } = await supabaseClient.from("shared_moments").update({ status: "accepted", expires_at: expiresAt }).eq("id", id);
-  if (error) return alert("Couldn't accept shared moment.");
-  await supabaseClient.from("wall_peeks").insert({ owner_id: request.from_user_id, viewer_id: request.to_user_id, shared_moment_id: request.id, expires_at: expiresAt });
-  alert("Shared moment pinned to your wall 🐋");
-  await loadSharedMomentRequests();
-  await loadMoments();
-}
-
-async function declineSharedMoment(id) {
-  const { error } = await supabaseClient.from("shared_moments").update({ status: "declined" }).eq("id", id);
-  if (error) return alert("Couldn't decline shared moment.");
-  loadSharedMomentRequests();
-}
-
-document.addEventListener("DOMContentLoaded", async () => {
-  const captionInput = document.getElementById("momentCaption");
-  if (captionInput) captionInput.addEventListener("input", updateWordCount);
-  const photoInput = document.getElementById("momentPhoto");
-  if (photoInput) photoInput.addEventListener("change", handlePhotoSelect);
-  const saveUsernameButton = document.getElementById("saveUsernameButton");
-  if (saveUsernameButton) saveUsernameButton.addEventListener("click", saveUsername);
-  const signupButton = document.getElementById("signupButton");
-  if (signupButton) signupButton.addEventListener("click", signup);
-  const loginButton = document.getElementById("loginButton");
-  if (loginButton) loginButton.addEventListener("click", login);
-  await loadProfile();
-  await loadMoments();
-  await loadFriendRequests();
-  await loadFriends();
-  await loadSharedMomentRequests();
+async function replyShared(id,accept) {check(await supabaseClient.rpc("reply_shared_moment",{request_id:id,accept}));notice(accept?"Shared moment pinned! Your 24-hour peek is open 🐋":"Shared moment declined.");await Promise.all([loadSharedMomentRequests(),loadFriends()]);}
+document.addEventListener("DOMContentLoaded",()=>{
+  if(!supabaseClient){notice("Account service failed to load. Refresh to try again.",true);return;}
+  $("momentCaption").addEventListener("input",updateWordCount);
+  $("momentPhoto").addEventListener("change",e=>action(()=>handlePhotoSelect(e)));
+  for(const [id,handler] of [["saveUsernameButton",saveUsername],["signupButton",signup],["loginButton",login],["logoutButton",logout],["resetPasswordButton",resetPassword],["newPasswordButton",updatePassword]]) $(id).onclick=()=>action(handler,$(id));
+  $("profileButton").onclick=()=>showScreen("profile");
+  $("capturePanel").onclick=e=>{if(e.target===$("capturePanel"))closeCapture();};
+  $("appNotice").onclick=()=>{$("appNotice").hidden=true;};
+  document.addEventListener("keydown",e=>{if(e.key==="Escape")closeCapture();});
+  supabaseClient.auth.onAuthStateChange((event)=>{
+    // Defer API work to avoid the auth client's session lock.
+    setTimeout(()=>{if(event==="PASSWORD_RECOVERY")showScreen("reset");else if(event==="SIGNED_OUT"){empty($("wall"),"Log in to see your moments 🐋");action(loadProfile);}},0);
+  });
+  action(async()=>{await loadProfile();await loadMoments();});
 });
