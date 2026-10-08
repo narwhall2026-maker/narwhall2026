@@ -1,1 +1,109 @@
-<!doctype html><html><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Narwhal — little moments</title></head><body><div id="root"></div><script type="module" src="/src/main.jsx"></script></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Narwhall 🐋</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app">
+    <header>
+      <div class="logo">🐋 Narwhall</div>
+      <button class="profile-button" aria-label="Profile">👤</button>
+    </header>
+
+    <section class="intro">
+      <h1>my Moments!</h1>
+      <p>are worth capturing</p>
+    </section>
+
+    <section id="wall">
+      <div class="wall-empty">Log in to see your moments 🐋</div>
+    </section>
+  </main>
+
+  <button class="capture" onclick="openCapture()">📸 Capture</button>
+
+  <div id="capturePanel" class="capture-panel">
+    <div class="capture-box">
+      <button class="close-capture" onclick="closeCapture()" aria-label="Close">✕</button>
+      <h2>Capture a moment</h2>
+      <p>Something worth keeping?</p>
+
+      <label for="momentPhoto">Your photo</label>
+      <input type="file" id="momentPhoto" accept="image/*" capture="environment">
+      <div id="photoPreview"></div>
+
+      <label for="shareFriend">Share with a friend</label>
+      <select id="shareFriend">
+        <option value="">Just me</option>
+      </select>
+
+      <label for="momentCaption">Your caption</label>
+      <textarea id="momentCaption" maxlength="15" placeholder="What's happening?"></textarea>
+
+      <div class="word-count"><span id="wordCount">0</span>/15 characters</div>
+
+      <button class="pin-button" onclick="saveMoment()">✨ Pin moment</button>
+    </div>
+  </div>
+
+  <section id="friendsScreen" style="display: none;">
+    <h2>Friends</h2>
+    <button id="addFriendButton" onclick="addFriend()">➕ Add friend</button>
+    <h3>Friend requests</h3>
+    <div id="friendRequests"><p>No friend requests yet.</p></div>
+    <h3>Shared moments</h3>
+    <div id="sharedMomentRequests"><p>No shared moments yet 🐋</p></div>
+    <h3>Your friends</h3>
+    <div id="friendsList"></div>
+  </section>
+
+  <div id="peekScreen" style="display:none;">
+    <button onclick="closePeek()">← Back</button>
+    <h2 id="peekTitle">Peek 👀</h2>
+    <div id="peekContent"></div>
+  </div>
+
+  <nav>
+    <button onclick="showScreen('wall')">🏠 <span>Wall</span></button>
+    <button onclick="showScreen('friends')">👥 <span>Friends</span></button>
+    <button onclick="showScreen('profile')">👤 <span>Profile</span></button>
+  </nav>
+
+  <section id="profileScreen" style="display: none;">
+    <h2>Profile</h2>
+    <label for="username">Username</label>
+    <input id="username" type="text" placeholder="Choose a username">
+    <button id="saveUsernameButton">Save username</button>
+    <button onclick="showScreen('signup')">🐋 Sign up</button>
+    <button onclick="showScreen('login')">🔑 Log in</button>
+  </section>
+
+  <section id="signupScreen" style="display: none;">
+    <button class="screen-back" onclick="showScreen('profile')">← Back</button>
+    <h2>Create your Narwhal account 🐋</h2>
+    <label for="signupEmail">Email</label>
+    <input id="signupEmail" type="email" placeholder="Your email">
+    <label for="signupPassword">Password</label>
+    <input id="signupPassword" type="password" placeholder="Create a password">
+    <label for="signupUsername">Username</label>
+    <input id="signupUsername" type="text" placeholder="Choose a username">
+    <button id="signupButton">Create account</button>
+  </section>
+
+  <section id="loginScreen" style="display: none;">
+    <button class="screen-back" onclick="showScreen('profile')">← Back</button>
+    <h2>Welcome back 🐋</h2>
+    <label for="loginEmail">Email</label>
+    <input id="loginEmail" type="email" placeholder="Your email">
+    <label for="loginPassword">Password</label>
+    <input id="loginPassword" type="password" placeholder="Your password">
+    <button id="loginButton">Log in</button>
+  </section>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js"></script>
+</body>
+</html>
