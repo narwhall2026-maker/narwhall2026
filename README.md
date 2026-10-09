@@ -28,3 +28,5 @@ The current upload safeguard is 100 stored photos per account and 2 MB per photo
 ## Email configuration required for public launch
 
 In Supabase Auth → URL Configuration, use `https://narwhall2026.vercel.app` as Site URL and allow it as a redirect URL. Configure an SMTP provider for public confirmation and password-reset email delivery. The default Supabase mail service is restricted and is unsuitable for public signup. Email confirmation remains enabled. Do not put SMTP credentials or service-role keys in frontend files.
+
+Private wall: moments use a separate `wall_scope` (main/private). Apply `private-wall.sql` after the initial schema for existing installs. Only the owner can see private moments unless they invite an accepted friend for 24 hours; access can be revoked early. Ordinary shared moments unlock only the main wall. Private moments cannot enter the sharing/copy flow. R2 authorization checks the same permissions for every photo request. Invitations appear in Friends. The viewer rechecks permission every 15 seconds and upon returning to the tab. Screenshots and previously saved images cannot be erased by revoking access.

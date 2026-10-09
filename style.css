@@ -48,3 +48,12 @@ nav button{border:0;background:transparent;color:#858994;font-size:12px;display:
 @media(max-width:600px){.app{padding:17px 12px 105px}.logo{font-size:32px}.intro h1{font-size:29px}#wall{min-height:535px;border-radius:23px}.polaroid{width:155px;min-height:184px;padding:9px 9px 21px}.polaroid img{height:124px;margin-bottom:9px}.polaroid-caption{font-size:18px}.capture{right:17px;bottom:80px;padding:13px 17px}nav{gap:30px}.capture-box{border-radius:25px 25px 18px 18px}}
 @media(min-width:601px){#wall .polaroid:nth-of-type(1){margin-left:0}}
 
+.wall-tabs {display:flex;gap:10px;justify-content:center;margin:12px 0 22px;}
+.wall-tabs button {border:1px solid #70665e;border-radius:20px;padding:10px 18px;background:transparent;color:#f4e9d5;cursor:pointer;}
+.wall-tabs button[aria-pressed="true"] {background:#f4e9d5;color:#24201e;}
+#privateControls {max-width:500px;margin:0 auto 24px;padding:18px;border:1px solid #70665e;border-radius:14px;color:#f4e9d5;}
+#privateControls label {display:block;margin-top:16px;}
+#privateControls select {width:100%;padding:10px;margin:8px 0;}
+#privateControls button {padding:10px 16px;margin:4px 0;border-radius:12px;cursor:pointer;}
+.privacy-hint {font-size:.85rem;opacity:.75;}
+[hidden] {display:none !important;}

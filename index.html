@@ -14,10 +14,21 @@
     </header>
 
     <section id="intro" class="intro">
-      <h1>my Moments!</h1>
+      <h1 id="wallTitle">my Moments!</h1>
       <p>are worth capturing</p>
     </section>
 
+    <section id="wallControls">
+      <div class="wall-tabs"><button id="mainWallTab" onclick="setWall('main')" aria-pressed="true">My wall</button><button id="privateWallTab" onclick="setWall('private')" aria-pressed="false">🔒 Private wall</button></div>
+      <div id="privateControls" hidden>
+        <p>Just for you, unless you invite someone for 24 hours.</p>
+        <p class="privacy-hint">Only invite people you trust—photos can be saved or screenshotted.</p>
+        <label for="privateFriend">Let a friend see your private wall</label>
+        <select id="privateFriend"><option value="">Choose a friend</option></select>
+        <button id="privateInviteButton">Invite for 24 hours</button>
+        <div id="privateAccessList"></div>
+      </div>
+    </section>
     <section id="wall">
       <div class="wall-empty">Log in to see your moments 🐋</div>
     </section>
@@ -29,17 +40,17 @@
   <div id="capturePanel" class="capture-panel">
     <div class="capture-box" role="dialog" aria-modal="true" aria-label="Capture a moment">
       <button class="close-capture" onclick="closeCapture()" aria-label="Close">✕</button>
-      <h2>Capture a moment</h2>
+      <h2 id="captureTitle">Capture a moment</h2>
       <p>Something worth keeping?</p>
 
       <label for="momentPhoto">Your photo</label>
       <input type="file" id="momentPhoto" accept="image/*">
       <div id="photoPreview"></div>
 
-      <label for="shareFriend">Share with a friend</label>
+      <div id="captureShare"><label for="shareFriend">Share with a friend</label>
       <select id="shareFriend">
         <option value="">Just me</option>
-      </select>
+      </select></div>
 
       <label for="momentCaption">Your caption</label>
       <textarea id="momentCaption" maxlength="30" placeholder="What's happening?"></textarea>
@@ -57,6 +68,8 @@
     <div id="friendRequests"><p>No friend requests yet.</p></div>
     <h3>Shared moments</h3>
     <div id="sharedMomentRequests"><p>No shared moments yet 🐋</p></div>
+    <h3>Private wall invitations</h3>
+    <div id="privateWallInvites"></div>
     <h3>Your friends</h3>
     <div id="friendsList"></div>
   </section>
