@@ -20,6 +20,14 @@
 
     <section id="wallControls">
       <div class="wall-tabs"><button id="mainWallTab" onclick="setWall('main')" aria-pressed="true">My wall</button><button id="privateWallTab" onclick="setWall('private')" aria-pressed="false">🔒 Private wall</button></div>
+      <div class="wall-tabs"><button id="recentTab" onclick="setMemoryView(false)" aria-pressed="true">Latest 10</button><button id="memoriesTab" onclick="setMemoryView(true)" aria-pressed="false">📚 Memories</button></div>
+      <p id="wallViewHint" class="wall-view-hint">Your newest 10 moments. Older photos stay in Memories.</p>
+      <div id="memoryControls" hidden>
+        <button onclick="moveMemoryWeek(-1)">← Older week</button>
+        <label for="memoryDate">Week containing</label><input id="memoryDate" type="date">
+        <button id="newerWeekButton" onclick="moveMemoryWeek(1)">Newer week →</button>
+        <p id="memoryWeekLabel" aria-live="polite"></p>
+      </div>
       <div id="privateControls" hidden>
         <p>Just for you, unless you invite someone for 24 hours.</p>
         <p class="privacy-hint">Only invite people you trust—photos can be saved or screenshotted.</p>
@@ -32,6 +40,7 @@
     <section id="wall">
       <div class="wall-empty">Log in to see your moments 🐋</div>
     </section>
+    <button id="moreMemoriesButton" hidden onclick="action(()=>loadMoments(true),this)">Load more from this week</button>
   </main>
 
   <div id="appNotice" role="status" aria-live="polite" hidden></div>

@@ -4,6 +4,8 @@ const MEDIA = "https://narwhall-media.narwhall2026.workers.dev";
 const supabaseClient = window.supabase?.createClient(supabaseUrl, supabaseKey);
 let selectedPhoto = null, selectedPhotoUrl = null, saving = false, wallGeneration = 0;
 let currentWall="main", captureScope="main", peekGeneration=0, activePrivatePeek=null, privatePeekTimer=null;
+let memoryView=false, memoryWeek=startOfWeek(new Date()), memoryOffset=0;
+const MEMORY_PAGE=24;
 const imageUrls = new Set();
 const $ = id => document.getElementById(id);
 function notice(message, error=false) {
@@ -32,6 +34,7 @@ function clearPeek() {
 function showScreen(screen) {
   if(screen!=="peek") clearPeek();
   $("wallControls").hidden=screen!=="wall";
+  $("moreMemoriesButton").hidden=true;
   ["wall","friendsScreen","profileScreen","peekScreen","signupScreen","loginScreen","resetScreen"].forEach(id=>{if($(id)) $(id).style.display="none";});
   const target=screen==="wall"?"wall":screen+"Screen"; if($(target)) $(target).style.display="block";
   $("intro").hidden=screen!=="wall"; $("captureButton").hidden=screen!=="wall";
@@ -101,18 +104,30 @@ async function saveMoment() {
   },$("pinButton"));} finally {saving=false;}
 }
 function empty(container, message) { clearImages(container);container.replaceChildren();const p=document.createElement("p");p.className="wall-message";p.textContent=message;container.append(p); }
-async function loadMoments() {
-  const generation=++wallGeneration;const scope=currentWall;const wall=$("wall");
+async function loadMoments(append=false) {
+  const generation=++wallGeneration;const scope=currentWall;const archive=memoryView;const wall=$("wall");
+  $("moreMemoriesButton").hidden=true;wall.classList.toggle("memory-grid",archive);updateMemoryControls();
   const session=check(await supabaseClient.auth.getSession()).session;
+  if(generation!==wallGeneration)return;
   if(!session) {empty(wall,"Log in or sign up to start your wall 🐋");return;}
-  const moments=check(await supabaseClient.from("moments").select("*").eq("user_id",session.user.id).eq("wall_scope",scope).is("deleted_at",null).order("created_at",{ascending:false}));
+  if(!append)memoryOffset=0;
+  let query=supabaseClient.from("moments").select("*").eq("user_id",session.user.id).eq("wall_scope",scope).is("deleted_at",null).order("created_at",{ascending:false}).order("id",{ascending:false});
+  if(archive){const end=new Date(memoryWeek);end.setDate(end.getDate()+7);query=query.gte("created_at",memoryWeek.toISOString()).lt("created_at",end.toISOString()).range(memoryOffset,memoryOffset+MEMORY_PAGE);}
+  else query=query.limit(10);
+  const result=check(await query);
   if(generation!==wallGeneration) return;
-  empty(wall,moments.length?"Loading your photos…":"Your first moment is waiting to be captured ✦");
-  if(!moments.length) return;
-  const cards=await Promise.all(moments.map(async m=>{try{return await makeCard(m,wall,true);}catch(e){return {error:e};}}));
+  const hasMore=archive && result.length>MEMORY_PAGE;const moments=hasMore?result.slice(0,MEMORY_PAGE):result;
+  if(!append)empty(wall,moments.length?"Loading your photos…":archive?"No moments this week. Try an older week or choose a date.":"Your first moment is waiting to be captured ✦");
+  if(!moments.length)return;
+  const cards=await Promise.all(moments.map(async m=>{try{
+    const card=await makeCard(m,wall,!archive);
+    if(archive){const date=document.createElement("time");date.dateTime=m.created_at;date.textContent=new Date(m.created_at).toLocaleString();card.append(date);}
+    return card;
+  }catch(e){return {error:e};}}));
   if(generation!==wallGeneration) {cards.forEach(c=>{if(c instanceof Element)clearImages(c);});return;}
-  wall.replaceChildren();
-  cards.forEach(c=>{if(c instanceof Element)wall.append(c);});
+  if(!append)wall.replaceChildren();
+  cards.forEach((c,index)=>{if(c instanceof Element){if(!archive)c.style.zIndex=String(10-index);wall.append(c);}});memoryOffset+=moments.length;
+  $("moreMemoriesButton").hidden=!hasMore;
   if(cards.some(c=>c.error)) notice("Some photos could not load. Refresh your wall to try again.",true);
 }
 async function makeCard(moment,container,editable=false) {
@@ -163,7 +178,7 @@ async function login() {
   const email=$("loginEmail").value.trim(),password=$("loginPassword").value;if(!email||!password)throw new Error("Enter your email and password.");
   check(await supabaseClient.auth.signInWithPassword({email,password}));$("loginPassword").value="";showScreen("wall");notice("Welcome back 🐋");
 }
-async function logout() {currentWall="main";updateWallControls();clearPeek();check(await supabaseClient.auth.signOut());wallGeneration++;clearImages($("wall"));clearImages($("peekContent"));empty($("wall"),"Log in to see your moments 🐋");showScreen("profile");notice("Logged out.");}
+async function logout() {currentWall="main";memoryView=false;updateMemoryControls();updateWallControls();clearPeek();check(await supabaseClient.auth.signOut());wallGeneration++;clearImages($("wall"));clearImages($("peekContent"));empty($("wall"),"Log in to see your moments 🐋");showScreen("profile");notice("Logged out.");}
 async function resetPassword() {const email=$("loginEmail").value.trim();if(!email)throw new Error("Enter your email first.");check(await supabaseClient.auth.resetPasswordForEmail(email,{redirectTo:location.origin}));notice("Check your email for a password reset link.");}
 async function updatePassword() {const password=$("newPassword").value;if(password.length<8)throw new Error("Use at least 8 characters.");check(await supabaseClient.auth.updateUser({password}));$("newPassword").value="";showScreen("wall");notice("Password updated.");}
 async function addFriend() {
@@ -194,7 +209,7 @@ async function openPeek(id,username) {
   if(!peeks.length)throw new Error("This peek has expired. Accept a new shared moment to unlock it.");
   clearPeek();const generation=++peekGeneration;showScreen("peek");$("peekTitle").textContent=(username||"Friend")+"'s Wall 👀";
   const content=$("peekContent");empty(content,"Loading their wall…");
-  const moments=check(await supabaseClient.from("moments").select("*").eq("user_id",id).eq("wall_scope","main").is("deleted_at",null).order("created_at",{ascending:false}).limit(10));
+  const moments=check(await supabaseClient.from("moments").select("*").eq("user_id",id).eq("wall_scope","main").is("deleted_at",null).order("created_at",{ascending:false}).order("id",{ascending:false}).limit(10));
   if(!moments.length){empty(content,"No moments to peek at yet 🐋");return;}
   const cards=await Promise.all(moments.map(m=>makeCard(m,content)));if(generation!==peekGeneration){cards.forEach(clearImages);return;}content.replaceChildren(...cards);
 }
@@ -220,10 +235,11 @@ document.addEventListener("DOMContentLoaded",()=>{
   document.addEventListener("keydown",e=>{if(e.key==="Escape")closeCapture();});
   supabaseClient.auth.onAuthStateChange((event)=>{
     // Defer API work to avoid the auth client's session lock.
-    setTimeout(()=>{if(event==="PASSWORD_RECOVERY")showScreen("reset");else if(event==="SIGNED_OUT"){wallGeneration++;currentWall="main";updateWallControls();clearPeek();empty($("wall"),"Log in to see your moments 🐋");action(loadProfile);}},0);
+    setTimeout(()=>{if(event==="PASSWORD_RECOVERY")showScreen("reset");else if(event==="SIGNED_OUT"){wallGeneration++;currentWall="main";memoryView=false;updateMemoryControls();updateWallControls();clearPeek();empty($("wall"),"Log in to see your moments 🐋");action(loadProfile);}},0);
   });
   document.addEventListener("visibilitychange",()=>{if(document.hidden && activePrivatePeek){clearImages($("peekContent"));$("peekContent").replaceChildren();delete $("peekContent").dataset.signature;peekGeneration++;}else if(activePrivatePeek)action(refreshPrivatePeek);});
-  updateWallControls();action(async()=>{await loadProfile();await loadMoments();});
+  $("memoryDate").onchange=()=>{const date=new Date($("memoryDate").value+"T12:00:00");if(!Number.isNaN(date.getTime()) && $("memoryDate").value<=localDate(new Date())){memoryWeek=startOfWeek(date);action(loadMoments);}else updateMemoryControls();};
+  updateMemoryControls();updateWallControls();action(async()=>{await loadProfile();await loadMoments();});
 });
 function updateWallControls() {
   $("mainWallTab").setAttribute("aria-pressed",currentWall==="main");
@@ -286,7 +302,7 @@ async function refreshPrivatePeek() {
   const access=activePrivatePeek;if(!access)return;const generation=++peekGeneration;const content=$("peekContent");
   try {
     access.expiry=await privatePermission(access.owner);
-    const moments=check(await supabaseClient.from("moments").select("*").eq("user_id",access.owner).eq("wall_scope","private").is("deleted_at",null).order("created_at",{ascending:false}));
+    const moments=check(await supabaseClient.from("moments").select("*").eq("user_id",access.owner).eq("wall_scope","private").is("deleted_at",null).order("created_at",{ascending:false}).order("id",{ascending:false}).limit(10));
     if(generation!==peekGeneration || activePrivatePeek!==access || document.hidden)return;
     // Recheck access regularly without downloading unchanged photos.
     const signature=JSON.stringify(moments.map(m=>[m.id,m.caption,m.photo_url]));
@@ -302,3 +318,19 @@ async function refreshPrivatePeek() {
     if(generation===peekGeneration && activePrivatePeek===access){clearPeek();showScreen("friends");notice(error.message,true);}
   }
 }
+
+function startOfWeek(date) {
+  const result=new Date(date);result.setHours(0,0,0,0);result.setDate(result.getDate()-((result.getDay()+6)%7));return result;
+}
+function localDate(date){return [date.getFullYear(),String(date.getMonth()+1).padStart(2,"0"),String(date.getDate()).padStart(2,"0")].join("-");}
+function updateMemoryControls() {
+  $("memoryControls").hidden=!memoryView;
+  $("recentTab").setAttribute("aria-pressed",!memoryView);$("memoriesTab").setAttribute("aria-pressed",memoryView);
+  $("wallViewHint").textContent=memoryView?"Your memories, week by week. Only you can browse your full history.":"Your newest 10 moments. Older photos stay in Memories.";
+  $("memoryDate").max=localDate(new Date());$("memoryDate").value=localDate(memoryWeek);
+  const end=new Date(memoryWeek);end.setDate(end.getDate()+6);
+  $("memoryWeekLabel").textContent=memoryWeek.toLocaleDateString()+" – "+end.toLocaleDateString();
+  $("newerWeekButton").disabled=memoryWeek>=startOfWeek(new Date());
+}
+function setMemoryView(value){memoryView=!!value;wallGeneration++;empty($("wall"),"Loading your moments…");updateMemoryControls();action(loadMoments);}
+function moveMemoryWeek(direction){const next=new Date(memoryWeek);next.setDate(next.getDate()+direction*7);if(next>startOfWeek(new Date()))return;memoryWeek=next;action(loadMoments);}

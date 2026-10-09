@@ -57,3 +57,10 @@ nav button{border:0;background:transparent;color:#858994;font-size:12px;display:
 #privateControls button {padding:10px 16px;margin:4px 0;border-radius:12px;cursor:pointer;}
 .privacy-hint {font-size:.85rem;opacity:.75;}
 [hidden] {display:none !important;}
+.wall-view-hint {text-align:center;color:#f4e9d5;font-size:.9rem;}
+#memoryControls {text-align:center;color:#f4e9d5;margin:12px auto 24px;}
+#memoryControls button,#memoryControls input,#moreMemoriesButton {padding:10px;margin:5px;border-radius:12px;}
+#wall.memory-grid {display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:22px;height:auto;min-height:250px;padding:20px;align-items:start;}
+#wall.memory-grid .polaroid {position:relative;left:auto;top:auto;transform:none;width:100%;box-sizing:border-box;margin:0;cursor:default;}
+#wall.memory-grid time {display:block;font-family:system-ui,sans-serif;font-size:.7rem;color:#675e54;margin-top:10px;}
+#moreMemoriesButton {display:block;margin:16px auto 110px;cursor:pointer;}
