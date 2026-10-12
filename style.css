@@ -86,3 +86,5 @@ nav button{border:0;background:transparent;color:#858994;font-size:12px;display:
 .capture-actions .pin-button {background:#f17b22;color:#201308;border:0;}
 .capture-box :focus-visible {outline-color:#ed9b57;}
 @media(max-height:650px){.capture-panel {align-items:flex-start;}.capture-polaroid #photoPreview img {max-height:36dvh;}.capture-box {max-height:none;}}
+.rename-wall {display:block;margin:0 auto 14px;border:0;background:transparent;color:#bcb3a6;font-size:12px;text-decoration:underline;padding:6px;}
+.wall-tabs button {max-width:48%;overflow-wrap:anywhere;}
