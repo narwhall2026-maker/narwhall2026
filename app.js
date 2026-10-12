@@ -129,7 +129,7 @@ async function loadMoments(append=false) {
   }catch(e){return {error:e};}}));
   if(generation!==wallGeneration) {cards.forEach(c=>{if(c instanceof Element)clearImages(c);});return;}
   if(!append)wall.replaceChildren();
-  cards.forEach((c,index)=>{if(c instanceof Element){if(!archive)c.style.zIndex=String(10-index);wall.append(c);}});memoryOffset+=moments.length;
+  cards.forEach((c,index)=>{if(c instanceof Element){wall.append(c);}});memoryOffset+=moments.length;
   $("moreMemoriesButton").hidden=!hasMore;
   if(cards.some(c=>c.error)) notice("Some photos could not load. Refresh your wall to try again.",true);
 }
@@ -142,19 +142,9 @@ async function makeCard(moment,container,editable=false) {
     const remove=document.createElement("button");remove.className="trash";remove.textContent="×";remove.title="Hide moment";remove.setAttribute("aria-label","Hide "+moment.caption);
     remove.onclick=()=>action(async()=>{if(!confirm("Hide this moment from your wall?"))return;check(await supabaseClient.from("moments").update({deleted_at:new Date().toISOString()}).eq("id",moment.id).select("id").single());await loadMoments();},remove);
     const share=document.createElement("button");share.className="share-card";share.textContent="Share";share.onclick=()=>action(async()=>{const user=await requireUser();const username=prompt("Share with which friend's username?");if(!username)return;const friend=check(await supabaseClient.from("profiles").select("id").eq("username",username.trim().toLowerCase()).single());check(await supabaseClient.from("shared_moments").insert({moment_id:moment.id,from_user_id:user.id,to_user_id:friend.id}));notice("Moment shared 🐋");},share);
-    card.append(remove);if(moment.wall_scope!=="private")card.append(share);card.style.left=moment.position_x+"%";card.style.top=moment.position_y+"%";card.style.transform="rotate("+moment.rotation+"deg)";enableDrag(card,container,moment);
+    card.append(remove);if(moment.wall_scope!=="private")card.append(share);
   } else card.classList.add("peek-card");
   return card;
-}
-function enableDrag(card,wall,moment) {
-  let drag=null;
-  const clamp=()=>{const xMax=Math.max(0,(wall.clientWidth-card.offsetWidth-8)/wall.clientWidth*100);const yMax=Math.max(0,(wall.clientHeight-card.offsetHeight-8)/wall.clientHeight*100);card.style.left=Math.min(parseFloat(card.style.left),xMax)+"%";card.style.top=Math.min(parseFloat(card.style.top),yMax)+"%";};
-  requestAnimationFrame(clamp);
-  card.style.touchAction="none";
-  card.onpointerdown=e=>{if(e.target.closest("button") || e.button!==0)return;e.preventDefault();drag={id:e.pointerId,x:e.clientX,y:e.clientY,left:parseFloat(card.style.left),top:parseFloat(card.style.top)};card.setPointerCapture(e.pointerId);card.style.zIndex=9999;card.style.cursor="grabbing";};
-  card.onpointermove=e=>{if(!drag || drag.id!==e.pointerId)return;const r=wall.getBoundingClientRect();const maxX=Math.max(0,100-(card.offsetWidth+8)/r.width*100);const maxY=Math.max(0,100-(card.offsetHeight+8)/r.height*100);card.style.left=Math.max(0,Math.min(maxX,drag.left+(e.clientX-drag.x)/r.width*100))+"%";card.style.top=Math.max(0,Math.min(maxY,drag.top+(e.clientY-drag.y)/r.height*100))+"%";};
-  const end=e=>{if(!drag || e.pointerId!==drag.id)return;drag=null;card.style.cursor="grab";action(async()=>{check(await supabaseClient.from("moments").update({position_x:parseFloat(card.style.left),position_y:parseFloat(card.style.top)}).eq("id",moment.id).select("id").single());});};
-  card.onpointerup=end;card.onpointercancel=end;
 }
 async function profileMap(ids) {if(!ids.length)return new Map();const rows=check(await supabaseClient.from("profiles").select("id,username").in("id",[...new Set(ids)]));return new Map(rows.map(p=>[p.id,p.username]));}
 async function friendships() {const user=await requireUser();return {user,rows:check(await supabaseClient.from("friend_requests").select("*").or("sender_id.eq."+user.id+",receiver_id.eq."+user.id).eq("status","accepted"))};}
