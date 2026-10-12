@@ -98,3 +98,11 @@ nav button{border:0;background:transparent;color:#858994;font-size:12px;display:
 
 #wallBrowseControls {margin-top:18px;}
 #wallBrowseControls>.wall-view-hint {max-width:420px;margin:8px auto 20px;padding:0 8px;line-height:1.5;}
+
+/* One heading, with the handwritten saying on its own sticker. */
+.intro {display:flex;align-items:center;justify-content:space-between;gap:18px;text-align:left;margin:4px 0 26px;}
+.intro h1 {flex:1;overflow-wrap:anywhere;}
+.moments-sticker {flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#f3e8d6;color:#493b2e;padding:13px 15px;border-radius:5px 16px 5px 14px;box-shadow:3px 5px 0 #0004;transform:rotate(6deg);font-family:'Caveat',cursive;line-height:1.05;}
+.moments-sticker span:first-child {font-size:25px;font-weight:700;}
+.moments-sticker span:last-child {font-size:18px;}
+@media(max-width:380px){.intro {gap:10px;}.intro h1 {font-size:25px;}.moments-sticker {padding:10px;}.moments-sticker span:first-child {font-size:22px;}.moments-sticker span:last-child {font-size:16px;}}
