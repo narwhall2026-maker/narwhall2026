@@ -113,3 +113,14 @@ nav button{border:0;background:transparent;color:#858994;font-size:12px;display:
 #wallControls>.wall-tabs button[aria-pressed="true"],#wallBrowseControls>.wall-tabs button[aria-pressed="true"] {background:#f3e8d6;color:#28231e;border-color:#f3e8d6;box-shadow:0 4px 0 #a5957d;}
 #wallControls>.wall-tabs button:active,#wallBrowseControls>.wall-tabs button:active {transform:translateY(3px);box-shadow:0 1px 0 #050609;}
 @media(hover:hover){#wallControls>.wall-tabs button:hover,#wallBrowseControls>.wall-tabs button:hover {filter:brightness(1.12);}}
+
+/* Locked-wall invitations sit beneath the photos as one simple panel. */
+#privateControls {max-width:500px;margin:20px auto 16px;padding:20px;background:#151820;border:1px solid #30343e;border-radius:22px;}
+#privateControls>p:first-child {margin:0 0 8px;font-size:14px;line-height:1.5;}
+#privateControls .privacy-hint {margin:0 0 18px;font-size:11px;line-height:1.5;color:#a8a5a0;}
+#privateControls label {margin:0 0 8px;font-size:13px;font-weight:600;}
+#privateControls select {display:block;width:100%;min-height:50px;margin:0 0 12px;padding:12px 14px;border:1px solid #454954;border-radius:14px;background:#0d1016;color:#f3e8d6;font:inherit;font-size:14px;}
+#privateControls #privateInviteButton {width:100%;min-height:50px;margin:0;padding:12px 16px;border:0;border-radius:16px;background:#f3e8d6;color:#28231e;font-weight:600;box-shadow:0 3px 0 #a5957d;}
+#privateAccessList>div {margin-top:14px;padding-top:14px;border-top:1px solid #30343e;}
+#privateAccessList p {margin:0;font-size:12px;line-height:1.6;color:#aaa9ae;overflow-wrap:anywhere;}
+#privateAccessList button {margin-top:10px;padding:9px 13px;border:1px solid #55505a;background:transparent;color:#f3e8d6;border-radius:12px;font-size:12px;}

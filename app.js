@@ -36,6 +36,7 @@ function showScreen(screen) {
   if(screen!=="peek") clearPeek();
   $("wallControls").hidden=screen!=="wall";
   $("wallBrowseControls").hidden=screen!=="wall";
+  $("privateControls").hidden=screen!=="wall" || currentWall!=="private";
   $("moreMemoriesButton").hidden=true;
   ["wall","friendsScreen","profileScreen","peekScreen","signupScreen","loginScreen","resetScreen"].forEach(id=>{if($(id)) $(id).style.display="none";});
   const target=screen==="wall"?"wall":screen+"Screen"; if($(target)) $(target).style.display="block";

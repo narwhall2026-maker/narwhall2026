@@ -28,6 +28,11 @@
         <button id="newerWeekButton" onclick="moveMemoryWeek(1)">Newer week →</button>
         <p id="memoryWeekLabel" aria-live="polite"></p>
       </div>
+
+    </section>
+    <section id="wall">
+      <div class="wall-empty">Log in to see your moments 🐋</div>
+    </section>
       <div id="privateControls" hidden>
         <p>Just for you, unless you invite someone for 24 hours.</p>
         <p class="privacy-hint">Only invite people you trust—photos can be saved or screenshotted.</p>
@@ -36,10 +41,6 @@
         <button id="privateInviteButton">Invite for 24 hours</button>
         <div id="privateAccessList"></div>
       </div>
-    </section>
-    <section id="wall">
-      <div class="wall-empty">Log in to see your moments 🐋</div>
-    </section>
     <section id="wallBrowseControls">
       <div class="wall-tabs"><button id="recentTab" onclick="setMemoryView(false)" aria-pressed="true">Latest 10</button><button id="memoriesTab" onclick="setMemoryView(true)" aria-pressed="false">📚 Memories</button></div>
       <p id="wallViewHint" class="wall-view-hint">Your newest 10 moments. Older photos stay in Memories.</p>
