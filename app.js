@@ -6,7 +6,7 @@ let selectedPhoto = null, selectedPhotoUrl = null, saving = false, wallGeneratio
 let currentWall="main", captureScope="main", peekGeneration=0, activePrivatePeek=null, privatePeekTimer=null;
 let memoryView=false, memoryWeek=startOfWeek(new Date()), memoryOffset=0;
 const MEMORY_PAGE=24;
-let wallNames={main:"My wall",private:"Private wall"};
+let wallNames={main:"My wall",private:"Locked wall"};
 const imageUrls = new Set();
 const $ = id => document.getElementById(id);
 function notice(message, error=false) {
@@ -75,7 +75,7 @@ async function handlePhotoSelect(event) {
     const image=document.createElement("img");image.src=selectedPhotoUrl;image.alt="Photo preview";$("photoPreview").replaceChildren(image);updateCapturePreview();
   } finally {if(generation===photoSelection) $("pinButton").disabled=!selectedPhoto;}
 }
-function openCapture() { action(async()=>{await requireUser();captureScope=currentWall;$("captureTitle").textContent=captureScope==="private"?"A private moment 🔒":"Capture a moment";$("captureShare").hidden=captureScope==="private";$("shareFriend").value="";$("capturePanel").classList.add("open");updateCapturePreview();if(selectedPhoto)$("momentCaption").focus();else $("choosePhotoButton").focus();updateWordCount();if(captureScope==="main")await loadShareFriends();}); }
+function openCapture() { action(async()=>{await requireUser();captureScope=currentWall;$("captureTitle").textContent=captureScope==="private"?"A locked-wall moment 🔒":"Capture a moment";$("captureShare").hidden=captureScope==="private";$("shareFriend").value="";$("capturePanel").classList.add("open");updateCapturePreview();if(selectedPhoto)$("momentCaption").focus();else $("choosePhotoButton").focus();updateWordCount();if(captureScope==="main")await loadShareFriends();}); }
 function closeCapture() { $("capturePanel").classList.remove("open");$("captureButton").focus(); }
 async function mediaRequest(path, options={}) {
   const session=check(await supabaseClient.auth.getSession()).session;
@@ -96,7 +96,7 @@ async function saveMoment() {
     if(!caption || Array.from(caption).length>15) throw new Error("Add a caption of 1–15 characters.");
     const upload=await (await mediaRequest("/upload",{method:"PUT",body:selectedPhoto,headers:{"Content-Type":"image/jpeg"}})).json();
     const moment=check(await supabaseClient.from("moments").insert({user_id:user.id,wall_scope:scope,caption,photo_url:upload.key,position_x:5+Math.random()*35,position_y:5+Math.random()*40,rotation:Math.random()*12-6}).select().single());
-    let message=scope==="private"?"Private moment saved 🔒":"Moment saved! 🐋";
+    let message=scope==="private"?"Locked-wall moment saved 🔒":"Moment saved! 🐋";
     if(friend) {
       const result=await supabaseClient.from("shared_moments").insert({moment_id:moment.id,from_user_id:user.id,to_user_id:friend});
       if(result.error) message="Moment saved. Sharing failed — you can retry with Share on the card.";
@@ -181,7 +181,7 @@ async function login() {
   const email=$("loginEmail").value.trim(),password=$("loginPassword").value;if(!email||!password)throw new Error("Enter your email and password.");
   check(await supabaseClient.auth.signInWithPassword({email,password}));$("loginPassword").value="";showScreen("wall");notice("Welcome back 🐋");
 }
-async function logout() {wallNames={main:"My wall",private:"Private wall"};currentWall="main";memoryView=false;updateMemoryControls();updateWallControls();clearPeek();check(await supabaseClient.auth.signOut());wallGeneration++;clearImages($("wall"));clearImages($("peekContent"));empty($("wall"),"Log in to see your moments 🐋");showScreen("profile");notice("Logged out.");}
+async function logout() {wallNames={main:"My wall",private:"Locked wall"};currentWall="main";memoryView=false;updateMemoryControls();updateWallControls();clearPeek();check(await supabaseClient.auth.signOut());wallGeneration++;clearImages($("wall"));clearImages($("peekContent"));empty($("wall"),"Log in to see your moments 🐋");showScreen("profile");notice("Logged out.");}
 async function resetPassword() {const email=$("loginEmail").value.trim();if(!email)throw new Error("Enter your email first.");check(await supabaseClient.auth.resetPasswordForEmail(email,{redirectTo:location.origin}));notice("Check your email for a password reset link.");}
 async function updatePassword() {const password=$("newPassword").value;if(password.length<8)throw new Error("Use at least 8 characters.");check(await supabaseClient.auth.updateUser({password}));$("newPassword").value="";showScreen("wall");notice("Password updated.");}
 async function addFriend() {
@@ -238,7 +238,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   document.addEventListener("keydown",e=>{if(e.key==="Escape")closeCapture();});
   supabaseClient.auth.onAuthStateChange((event)=>{
     // Defer API work to avoid the auth client's session lock.
-    setTimeout(()=>{if(event==="PASSWORD_RECOVERY")showScreen("reset");else if(event==="SIGNED_OUT"){wallGeneration++;wallNames={main:"My wall",private:"Private wall"};currentWall="main";memoryView=false;updateMemoryControls();updateWallControls();clearPeek();empty($("wall"),"Log in to see your moments 🐋");action(loadProfile);}},0);
+    setTimeout(()=>{if(event==="PASSWORD_RECOVERY")showScreen("reset");else if(event==="SIGNED_OUT"){wallGeneration++;wallNames={main:"My wall",private:"Locked wall"};currentWall="main";memoryView=false;updateMemoryControls();updateWallControls();clearPeek();empty($("wall"),"Log in to see your moments 🐋");action(loadProfile);}},0);
   });
   document.addEventListener("visibilitychange",()=>{if(document.hidden && activePrivatePeek){clearImages($("peekContent"));$("peekContent").replaceChildren();delete $("peekContent").dataset.signature;peekGeneration++;}else if(activePrivatePeek)action(refreshPrivatePeek);});
   $("memoryDate").onchange=()=>{const date=new Date($("memoryDate").value+"T12:00:00");if(!Number.isNaN(date.getTime()) && $("memoryDate").value<=localDate(new Date())){memoryWeek=startOfWeek(date);action(loadMoments);}else updateMemoryControls();};
@@ -268,7 +268,7 @@ async function loadPrivateAccess() {
   const seen=new Set();
   invites.forEach(i=>{if(seen.has(i.viewer_id))return;seen.add(i.viewer_id);row(container,(names.get(i.viewer_id)||"Friend")+" can view until "+new Date(i.expires_at).toLocaleString(),[["Revoke access",async()=>{
     check(await supabaseClient.from("private_wall_invites").update({revoked_at:new Date().toISOString()}).eq("owner_id",user.id).eq("viewer_id",i.viewer_id).is("revoked_at",null));
-    notice("Private wall access revoked.");await loadPrivateAccess();
+    notice("Locked wall access revoked.");await loadPrivateAccess();
   }]]);});
   if(!seen.size)row(container,"Only you can see this wall.");
 }
@@ -276,20 +276,20 @@ async function invitePrivate() {
   const user=await requireUser();const viewer=$("privateFriend").value;
   if(!viewer)throw new Error("Choose a friend to invite.");
   check(await supabaseClient.from("private_wall_invites").insert({owner_id:user.id,viewer_id:viewer}));
-  notice("Your friend can view your private wall for 24 hours 🔒");await loadPrivateAccess();
+  notice("Your friend can view your locked wall for 24 hours 🔒");await loadPrivateAccess();
 }
 async function loadPrivateInvites() {
   const container=$("privateWallInvites");const session=check(await supabaseClient.auth.getSession()).session;
   if(!session){empty(container,"Please log in first.");return;}
   const invites=check(await supabaseClient.from("private_wall_invites").select("*").eq("viewer_id",session.user.id).is("revoked_at",null).gt("expires_at",new Date().toISOString()).order("expires_at",{ascending:false}));
   const names=await profileMap(invites.map(i=>i.owner_id));container.replaceChildren();const seen=new Set();
-  invites.forEach(i=>{if(seen.has(i.owner_id))return;seen.add(i.owner_id);row(container,(names.get(i.owner_id)||"Friend")+" invited you until "+new Date(i.expires_at).toLocaleString(),[["🔒 View private wall",()=>openPrivatePeek(i.owner_id,names.get(i.owner_id))]]);});
-  if(!seen.size)row(container,"No active private wall invitations.");
+  invites.forEach(i=>{if(seen.has(i.owner_id))return;seen.add(i.owner_id);row(container,(names.get(i.owner_id)||"Friend")+" invited you until "+new Date(i.expires_at).toLocaleString(),[["🔒 View locked wall",()=>openPrivatePeek(i.owner_id,names.get(i.owner_id))]]);});
+  if(!seen.size)row(container,"No active locked wall invitations.");
 }
 async function privatePermission(owner) {
   const user=await requireUser();
   const rows=check(await supabaseClient.from("private_wall_invites").select("expires_at").eq("owner_id",owner).eq("viewer_id",user.id).is("revoked_at",null).gt("expires_at",new Date().toISOString()).order("expires_at",{ascending:false}).limit(1));
-  if(!rows.length)throw new Error("This private wall invitation has expired or been revoked.");
+  if(!rows.length)throw new Error("This locked wall invitation has expired or been revoked.");
   return new Date(rows[0].expires_at).getTime();
 }
 async function openPrivatePeek(owner,username) {
@@ -298,7 +298,7 @@ async function openPrivatePeek(owner,username) {
   $("peekTitle").textContent=(username||"Friend")+" · "+title+" 🔒";
   await refreshPrivatePeek();
   if(activePrivatePeek)privatePeekTimer=setInterval(()=>{
-    if(Date.now()>=activePrivatePeek.expiry){clearPeek();notice("Private wall access has expired.");showScreen("friends");}
+    if(Date.now()>=activePrivatePeek.expiry){clearPeek();notice("Locked wall access has expired.");showScreen("friends");}
     else if(!document.hidden)action(refreshPrivatePeek);
   },15000);
 }
@@ -311,7 +311,7 @@ async function refreshPrivatePeek() {
     // Recheck access regularly without downloading unchanged photos.
     const signature=JSON.stringify(moments.map(m=>[m.id,m.caption,m.photo_url]));
     if(content.dataset.signature===signature && content.children.length)return;
-    empty(content,"Loading their private wall…");
+    empty(content,"Loading their locked wall…");
     const cards=[];
     try {for(const m of moments)cards.push(await makeCard(m,content));await privatePermission(access.owner);}
     catch(error){cards.forEach(clearImages);throw error;}
@@ -349,7 +349,7 @@ function updateCapturePreview() {
   $("retakeButton").textContent=hasPhoto?"Retake":"Choose photo";
   $("retakeButton").disabled=saving;
   $("pinButton").disabled=!hasPhoto || saving;
-  $("captureHint").textContent=captureScope==="private"?"This moment goes on your private wall 🔒":"Pick a photo, add a little caption, then pin it.";
+  $("captureHint").textContent=captureScope==="private"?"This moment goes on your locked wall 🔒":"Pick a photo, add a little caption, then pin it.";
   if(!hasPhoto){
     const button=document.createElement("button");button.id="choosePhotoButton";button.className="choose-photo";button.textContent="📷 Choose a photo";button.onclick=chooseCapturePhoto;
     $("photoPreview").replaceChildren(button);
@@ -359,11 +359,11 @@ function updateCapturePreview() {
 async function loadWallNames(userId) {
   const rows=check(await supabaseClient.from("wall_names").select("wall_scope,name").eq("user_id",userId));
   const session=check(await supabaseClient.auth.getSession()).session;if(session?.user.id!==userId)return;
-  wallNames={main:"My wall",private:"Private wall"};rows.forEach(r=>{wallNames[r.wall_scope]=r.name;});updateWallControls();
+  wallNames={main:"My wall",private:"Locked wall"};rows.forEach(r=>{wallNames[r.wall_scope]=r.name;});updateWallControls();
 }
 async function readWallName(userId,scope) {
   const data=check(await supabaseClient.from("wall_names").select("name").eq("user_id",userId).eq("wall_scope",scope).maybeSingle());
-  return data?.name || (scope==="private"?"Private wall":"My wall");
+  return data?.name || (scope==="private"?"Locked wall":"My wall");
 }
 async function renameWall() {
   const user=await requireUser();const scope=currentWall;

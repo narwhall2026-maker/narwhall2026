@@ -19,7 +19,7 @@
     </section>
 
     <section id="wallControls">
-      <div class="wall-tabs"><button id="mainWallTab" onclick="setWall('main')" aria-pressed="true">My wall</button><button id="privateWallTab" onclick="setWall('private')" aria-pressed="false">🔒 Private wall</button></div>
+      <div class="wall-tabs"><button id="mainWallTab" onclick="setWall('main')" aria-pressed="true">My wall</button><button id="privateWallTab" onclick="setWall('private')" aria-pressed="false">🔒 Locked wall</button></div>
       <div class="wall-tabs"><button id="recentTab" onclick="setMemoryView(false)" aria-pressed="true">Latest 10</button><button id="memoriesTab" onclick="setMemoryView(true)" aria-pressed="false">📚 Memories</button></div>
       <button id="renameWallButton" class="rename-wall" onclick="action(renameWall,this)">✎ Rename this wall</button>
       <p id="wallViewHint" class="wall-view-hint">Your newest 10 moments. Older photos stay in Memories.</p>
@@ -32,7 +32,7 @@
       <div id="privateControls" hidden>
         <p>Just for you, unless you invite someone for 24 hours.</p>
         <p class="privacy-hint">Only invite people you trust—photos can be saved or screenshotted.</p>
-        <label for="privateFriend">Let a friend see your private wall</label>
+        <label for="privateFriend">Let a friend see your locked wall</label>
         <select id="privateFriend"><option value="">Choose a friend</option></select>
         <button id="privateInviteButton">Invite for 24 hours</button>
         <div id="privateAccessList"></div>
@@ -76,7 +76,7 @@
     <div id="friendRequests"><p>No friend requests yet.</p></div>
     <h3>Shared moments</h3>
     <div id="sharedMomentRequests"><p>No shared moments yet 🐋</p></div>
-    <h3>Private wall invitations</h3>
+    <h3>Locked wall invitations</h3>
     <div id="privateWallInvites"></div>
     <h3>Your friends</h3>
     <div id="friendsList"></div>
