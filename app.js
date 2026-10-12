@@ -250,7 +250,6 @@ function updateWallControls() {
   $("mainWallTab").setAttribute("aria-pressed",currentWall==="main");
   $("privateWallTab").setAttribute("aria-pressed",currentWall==="private");
   $("privateControls").hidden=currentWall!=="private";
-  $("wallTitle").textContent=wallNames[currentWall]+(currentWall==="private"?" 🔒":"");
 }
 function setWall(scope) {
   if(scope!=="main" && scope!=="private")return;

@@ -106,3 +106,10 @@ nav button{border:0;background:transparent;color:#858994;font-size:12px;display:
 .moments-sticker span:first-child {font-size:25px;font-weight:700;}
 .moments-sticker span:last-child {font-size:18px;}
 @media(max-width:380px){.intro {gap:10px;}.intro h1 {font-size:25px;}.moments-sticker {padding:10px;}.moments-sticker span:first-child {font-size:22px;}.moments-sticker span:last-child {font-size:16px;}}
+
+/* Wall names live on the large, tactile wall buttons. */
+.intro {justify-content:flex-end;margin:4px 0 22px;}
+#wallControls>.wall-tabs button,#wallBrowseControls>.wall-tabs button {min-height:54px;border-radius:20px;padding:14px 16px;border:1px solid #484b55;background:#191c24;color:#e5e1d8;font-weight:600;box-shadow:0 4px 0 #050609;transition:background .15s,transform .15s,box-shadow .15s;}
+#wallControls>.wall-tabs button[aria-pressed="true"],#wallBrowseControls>.wall-tabs button[aria-pressed="true"] {background:#f3e8d6;color:#28231e;border-color:#f3e8d6;box-shadow:0 4px 0 #a5957d;}
+#wallControls>.wall-tabs button:active,#wallBrowseControls>.wall-tabs button:active {transform:translateY(3px);box-shadow:0 1px 0 #050609;}
+@media(hover:hover){#wallControls>.wall-tabs button:hover,#wallBrowseControls>.wall-tabs button:hover {filter:brightness(1.12);}}
