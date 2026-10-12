@@ -207,7 +207,7 @@ async function loadFriends() {
   const peeks=check(await supabaseClient.from("wall_peeks").select("owner_id,expires_at").eq("viewer_id",user.id).gt("expires_at",new Date().toISOString()));const owners=new Set(peeks.map(p=>p.owner_id));
   container.replaceChildren();if(!ids.length)row(container,"No friends yet 🐋");
   ids.forEach(id=>row(container,profiles.get(id)||"Friend",owners.has(id)?[["👀 Peek",()=>openPeek(id,profiles.get(id))]]:[]));
-  if(ids.length)row(container,"Accept a shared moment to unlock a 24-hour peek at your friend's wall.");
+  if(ids.length)row(container,"When a shared moment is accepted and pinned to both walls, you both get a 24-hour peek.");
 }
 async function openPeek(id,username) {
   const user=await requireUser();const peeks=check(await supabaseClient.from("wall_peeks").select("expires_at").eq("owner_id",id).eq("viewer_id",user.id).gt("expires_at",new Date().toISOString()).limit(1));
@@ -228,7 +228,7 @@ async function loadSharedMomentRequests() {
     else row(container,incoming?other+"'s shared moment: "+r.status:"Shared with "+other+": "+r.status);
   });
 }
-async function replyShared(id,accept) {check(await supabaseClient.rpc("reply_shared_moment",{request_id:id,accept}));notice(accept?"Shared moment pinned! Your 24-hour peek is open 🐋":"Shared moment declined.");await Promise.all([loadSharedMomentRequests(),loadFriends()]);}
+async function replyShared(id,accept) {check(await supabaseClient.rpc("reply_shared_moment",{request_id:id,accept}));notice(accept?"Shared moment pinned! Both of your 24-hour peeks are open 🐋":"Shared moment declined.");await Promise.all([loadSharedMomentRequests(),loadFriends()]);}
 document.addEventListener("DOMContentLoaded",()=>{
   if(!supabaseClient){notice("Account service failed to load. Refresh to try again.",true);return;}
   $("momentCaption").addEventListener("input",updateWordCount);
