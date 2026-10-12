@@ -42,7 +42,7 @@ nav button{border:0;background:transparent;color:#858994;font-size:12px;display:
 #friendsScreen,#profileScreen,#peekScreen{max-width:760px;margin:0 auto;padding:25px 16px 110px}#friendsScreen h2,#profileScreen h2,#peekScreen h2{font-size:29px;margin:0 0 18px}#friendsScreen h3{margin-top:28px;color:#898e99;font-size:13px;text-transform:uppercase;letter-spacing:.08em}
 #addFriendButton,#peekScreen>button,#profileScreen button:not(#saveUsernameButton),#friendRequests button,#sharedMomentRequests button,#friendsList button{border:1px solid #30343d;background:#171a21;color:#f1ede4;border-radius:12px;padding:10px 14px;font-size:13px}
 #friendRequests>div,#sharedMomentRequests>div,#friendsList>div{background:#14171e;border:1px solid #252932;border-radius:16px;padding:14px 15px;margin:10px 0;color:#eee}#friendRequests p,#sharedMomentRequests p,#friendsList p{margin:0 0 8px}#friendRequests button,#sharedMomentRequests button,#friendsList button{background:#f2eee4;color:#111;margin-right:7px;border:0;font-weight:600}
-#peekContent{position:relative;min-height:520px;background:#13161d;border:1px solid #242831;border-radius:25px;overflow:hidden;margin-top:15px}#peekContent .peek-card{position:relative!important;left:auto!important;top:auto!important;transform:none!important;margin:22px auto;width:min(188px,70%)}
+#peekContent{position:relative;min-height:520px;background:#13161d;border:1px solid #242831;border-radius:25px;overflow:hidden;margin-top:15px}#peekContent .peek-card{position:absolute;margin:0;width:188px}
 #profileScreen input{margin-top:7px}.screen-back{margin-bottom:25px;font-size:14px}
 #signupScreen,#loginScreen{position:fixed;inset:0;z-index:200;background:#090a0e;padding:32px 20px 100px;overflow:auto}#signupScreen h2,#loginScreen h2{max-width:470px;margin:0 auto 28px;font-size:27px}#signupScreen label,#signupScreen input,#signupScreen button,#loginScreen label,#loginScreen input,#loginScreen button{display:block;max-width:470px;margin-left:auto;margin-right:auto}#signupScreen input,#loginScreen input{background:#14171e}
 @media(max-width:600px){.app{padding:17px 12px 105px}.logo{font-size:32px}.intro h1{font-size:29px}#wall{min-height:535px;border-radius:23px}.polaroid{width:155px;min-height:184px;padding:9px 9px 21px}.polaroid img{height:124px;margin-bottom:9px}.polaroid-caption{font-size:18px}.capture{right:17px;bottom:80px;padding:13px 17px}nav{gap:30px}.capture-box{border-radius:25px 25px 18px 18px}}
@@ -124,3 +124,10 @@ nav button{border:0;background:transparent;color:#858994;font-size:12px;display:
 #privateAccessList>div {margin-top:14px;padding-top:14px;border-top:1px solid #30343e;}
 #privateAccessList p {margin:0;font-size:12px;line-height:1.6;color:#aaa9ae;overflow-wrap:anywhere;}
 #privateAccessList button {margin-top:10px;padding:9px 13px;border:1px solid #55505a;background:transparent;color:#f3e8d6;border-radius:12px;font-size:12px;}
+
+/* Photo stacking stays inside its wall; navigation stays above the wall. */
+#wall,#peekContent {isolation:isolate;}
+#peekContent {min-height:570px;}
+nav {z-index:90;height:calc(67px + env(safe-area-inset-bottom,0px));padding-bottom:env(safe-area-inset-bottom,0px);bottom:0;transform:translateZ(0);}
+.capture {bottom:calc(83px + env(safe-area-inset-bottom,0px));}
+@media(max-width:600px){#peekContent {min-height:535px;}#peekContent .peek-card {width:155px;}}

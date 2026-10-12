@@ -145,7 +145,7 @@ async function makeCard(moment,container,editable=false) {
     remove.onclick=()=>action(async()=>{if(!confirm("Hide this moment from your wall?"))return;check(await supabaseClient.from("moments").update({deleted_at:new Date().toISOString()}).eq("id",moment.id).select("id").single());await loadMoments();},remove);
     const share=document.createElement("button");share.className="share-card";share.textContent="Share";share.onclick=()=>action(async()=>{const user=await requireUser();const username=prompt("Share with which friend's username?");if(!username)return;const friend=check(await supabaseClient.from("profiles").select("id").eq("username",username.trim().toLowerCase()).single());check(await supabaseClient.from("shared_moments").insert({moment_id:moment.id,from_user_id:user.id,to_user_id:friend.id}));notice("Moment shared 🐋");},share);
     card.append(remove);if(moment.wall_scope!=="private")card.append(share);card.style.left=moment.position_x+"%";card.style.top=moment.position_y+"%";card.style.transform="rotate("+moment.rotation+"deg)";enableDrag(card,container,moment);
-  } else card.classList.add("peek-card");
+  } else {card.classList.add("peek-card");if(container.id==="peekContent"){card.style.left=moment.position_x+"%";card.style.top=moment.position_y+"%";card.style.transform="rotate("+moment.rotation+"deg)";}}
   return card;
 }
 function enableDrag(card,wall,moment) {
