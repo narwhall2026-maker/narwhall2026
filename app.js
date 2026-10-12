@@ -66,14 +66,15 @@ let photoSelection=0;
 async function handlePhotoSelect(event) {
   const generation=++photoSelection; const file=event.target.files[0]; selectedPhoto=null;
   if(selectedPhotoUrl) URL.revokeObjectURL(selectedPhotoUrl); selectedPhotoUrl=null;$("photoPreview").replaceChildren();
+  updateCapturePreview();
   if(!file) return;
   $("pinButton").disabled=true;
   try { const blob=await compressPhoto(file); if(generation!==photoSelection) return;
     selectedPhoto=blob;selectedPhotoUrl=URL.createObjectURL(blob);
-    const image=document.createElement("img");image.src=selectedPhotoUrl;image.alt="Photo preview";$("photoPreview").append(image);
-  } finally {if(generation===photoSelection) $("pinButton").disabled=false;}
+    const image=document.createElement("img");image.src=selectedPhotoUrl;image.alt="Photo preview";$("photoPreview").replaceChildren(image);updateCapturePreview();
+  } finally {if(generation===photoSelection) $("pinButton").disabled=!selectedPhoto;}
 }
-function openCapture() { action(async()=>{await requireUser();captureScope=currentWall;$("captureTitle").textContent=captureScope==="private"?"A private moment 🔒":"Capture a moment";$("captureShare").hidden=captureScope==="private";$("shareFriend").value="";$("capturePanel").classList.add("open");$("momentCaption").focus();updateWordCount();if(captureScope==="main")await loadShareFriends();}); }
+function openCapture() { action(async()=>{await requireUser();captureScope=currentWall;$("captureTitle").textContent=captureScope==="private"?"A private moment 🔒":"Capture a moment";$("captureShare").hidden=captureScope==="private";$("shareFriend").value="";$("capturePanel").classList.add("open");updateCapturePreview();if(selectedPhoto)$("momentCaption").focus();else $("choosePhotoButton").focus();updateWordCount();if(captureScope==="main")await loadShareFriends();}); }
 function closeCapture() { $("capturePanel").classList.remove("open");$("captureButton").focus(); }
 async function mediaRequest(path, options={}) {
   const session=check(await supabaseClient.auth.getSession()).session;
@@ -100,8 +101,8 @@ async function saveMoment() {
       if(result.error) message="Moment saved. Sharing failed — you can retry with Share on the card.";
     }
     selectedPhoto=null;if(selectedPhotoUrl) URL.revokeObjectURL(selectedPhotoUrl);selectedPhotoUrl=null;
-    $("momentPhoto").value="";$("momentCaption").value="";$("photoPreview").replaceChildren();updateWordCount();closeCapture();notice(message);await loadMoments();
-  },$("pinButton"));} finally {saving=false;}
+    $("momentPhoto").value="";$("momentCaption").value="";$("photoPreview").replaceChildren();updateWordCount();updateCapturePreview();closeCapture();notice(message);await loadMoments();
+  },$("pinButton"));} finally {saving=false;updateCapturePreview();}
 }
 function empty(container, message) { clearImages(container);container.replaceChildren();const p=document.createElement("p");p.className="wall-message";p.textContent=message;container.append(p); }
 async function loadMoments(append=false) {
@@ -334,3 +335,20 @@ function updateMemoryControls() {
 }
 function setMemoryView(value){memoryView=!!value;wallGeneration++;empty($("wall"),"Loading your moments…");updateMemoryControls();action(loadMoments);}
 function moveMemoryWeek(direction){const next=new Date(memoryWeek);next.setDate(next.getDate()+direction*7);if(next>startOfWeek(new Date()))return;memoryWeek=next;action(loadMoments);}
+
+function chooseCapturePhoto() {
+  if(saving)return;
+  $("momentPhoto").value="";$("momentPhoto").click();
+}
+function updateCapturePreview() {
+  const hasPhoto=!!selectedPhoto;
+  $("capturePanel").classList.toggle("has-photo",hasPhoto);
+  $("retakeButton").textContent=hasPhoto?"Retake":"Choose photo";
+  $("retakeButton").disabled=saving;
+  $("pinButton").disabled=!hasPhoto || saving;
+  $("captureHint").textContent=captureScope==="private"?"This moment goes on your private wall 🔒":"Pick a photo, add a little caption, then pin it.";
+  if(!hasPhoto){
+    const button=document.createElement("button");button.id="choosePhotoButton";button.className="choose-photo";button.textContent="📷 Choose a photo";button.onclick=chooseCapturePhoto;
+    $("photoPreview").replaceChildren(button);
+  }
+}
