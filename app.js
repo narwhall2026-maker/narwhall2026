@@ -35,6 +35,7 @@ function clearPeek() {
 function showScreen(screen) {
   if(screen!=="peek") clearPeek();
   $("wallControls").hidden=screen!=="wall";
+  $("wallBrowseControls").hidden=screen!=="wall";
   $("moreMemoriesButton").hidden=true;
   ["wall","friendsScreen","profileScreen","peekScreen","signupScreen","loginScreen","resetScreen"].forEach(id=>{if($(id)) $(id).style.display="none";});
   const target=screen==="wall"?"wall":screen+"Screen"; if($(target)) $(target).style.display="block";
@@ -374,3 +375,4 @@ async function renameWall() {
   else check(await supabaseClient.from("wall_names").insert({user_id:user.id,wall_scope:scope,name}));
   wallNames[scope]=name;updateWallControls();notice("Wall renamed 🐋");
 }
+
