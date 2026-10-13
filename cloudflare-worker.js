@@ -1,7 +1,7 @@
 const MAX_BYTES = 2 * 1024 * 1024;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const KEY = /^[0-9a-f-]{36}\/[0-9a-f-]{36}\.(jpg|png|webp)$/;
-const allowed = new Set(['https://narwhall2026.vercel.app','https://narwhall2026-narwhall2026-maker.vercel.app']);
+const allowed = new Set(['https://narwhall.app','https://www.narwhall.app','https://narwhall2026.vercel.app','https://narwhall2026-narwhall2026-maker.vercel.app']);
 function json(data,status=200) { return Response.json(data,{status}); }
 export default {
  async fetch(request,env,ctx) {
