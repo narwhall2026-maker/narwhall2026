@@ -1,0 +1,1 @@
+begin; alter table public.wall_names add column colour text not null default 'dark' check(colour in ('dark','cream','blush','lavender','sky','sage')); grant insert(colour),update(colour) on public.wall_names to authenticated; commit;

@@ -20,6 +20,7 @@
     <section id="wallControls">
       <div class="wall-tabs"><button id="mainWallTab" onclick="setWall('main')" aria-pressed="true">My moments</button><button id="privateWallTab" onclick="setWall('private')" aria-pressed="false">🔒 Locked wall</button></div>
 
+      <div class="wall-colour-control"><label for="wallColour">🎨 Wall colour</label><select id="wallColour" onchange="action(saveWallColour,this)"><option value="dark">Dark</option><option value="cream">Cream</option><option value="blush">Blush pink</option><option value="lavender">Lavender</option><option value="sky">Sky blue</option><option value="sage">Sage green</option></select></div>
       <button id="renameWallButton" class="rename-wall" onclick="action(renameWall,this)">✎ Rename this wall</button>
 
       <div id="memoryControls" hidden>

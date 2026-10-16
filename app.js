@@ -7,6 +7,8 @@ let currentWall="main", captureScope="main", peekGeneration=0, activePrivatePeek
 let memoryView=false, memoryWeek=startOfWeek(new Date()), memoryOffset=0;
 const MEMORY_PAGE=24;
 let wallNames={main:"My moments",private:"Locked wall"};
+let wallColours={main:"dark",private:"dark"};
+const WALL_COLOURS={dark:"#13161d",cream:"#eee3cf",blush:"#e7c4cc",lavender:"#d4c9eb",sky:"#c4deed",sage:"#cadbc5"};
 const imageUrls = new Set();
 const $ = id => document.getElementById(id);
 function notice(message, error=false) {
@@ -184,7 +186,7 @@ async function login() {
   const email=$("loginEmail").value.trim(),password=$("loginPassword").value;if(!email||!password)throw new Error("Enter your email and password.");
   check(await supabaseClient.auth.signInWithPassword({email,password}));$("loginPassword").value="";showScreen("wall");notice("Welcome back 🐋");
 }
-async function logout() {wallNames={main:"My moments",private:"Locked wall"};currentWall="main";memoryView=false;updateMemoryControls();updateWallControls();clearPeek();check(await supabaseClient.auth.signOut());wallGeneration++;clearImages($("wall"));clearImages($("peekContent"));empty($("wall"),"Log in to see your moments 🐋");showScreen("profile");notice("Logged out.");}
+async function logout() {wallColours={main:"dark",private:"dark"};wallNames={main:"My moments",private:"Locked wall"};currentWall="main";memoryView=false;updateMemoryControls();updateWallControls();clearPeek();check(await supabaseClient.auth.signOut());wallGeneration++;clearImages($("wall"));clearImages($("peekContent"));empty($("wall"),"Log in to see your moments 🐋");showScreen("profile");notice("Logged out.");}
 async function resetPassword() {const email=$("loginEmail").value.trim();if(!email)throw new Error("Enter your email first.");check(await supabaseClient.auth.resetPasswordForEmail(email,{redirectTo:location.origin}));notice("Check your email for a password reset link.");}
 async function updatePassword() {const password=$("newPassword").value;if(password.length<8)throw new Error("Use at least 8 characters.");check(await supabaseClient.auth.updateUser({password}));$("newPassword").value="";showScreen("wall");notice("Password updated.");}
 async function addFriend() {
@@ -241,13 +243,14 @@ document.addEventListener("DOMContentLoaded",()=>{
   document.addEventListener("keydown",e=>{if(e.key==="Escape")closeCapture();});
   supabaseClient.auth.onAuthStateChange((event)=>{
     // Defer API work to avoid the auth client's session lock.
-    setTimeout(()=>{if(event==="PASSWORD_RECOVERY")showScreen("reset");else if(event==="SIGNED_OUT"){wallGeneration++;wallNames={main:"My moments",private:"Locked wall"};currentWall="main";memoryView=false;updateMemoryControls();updateWallControls();clearPeek();empty($("wall"),"Log in to see your moments 🐋");action(loadProfile);}},0);
+    setTimeout(()=>{if(event==="PASSWORD_RECOVERY")showScreen("reset");else if(event==="SIGNED_OUT"){wallColours={main:"dark",private:"dark"};wallGeneration++;wallNames={main:"My moments",private:"Locked wall"};currentWall="main";memoryView=false;updateMemoryControls();updateWallControls();clearPeek();empty($("wall"),"Log in to see your moments 🐋");action(loadProfile);}},0);
   });
   document.addEventListener("visibilitychange",()=>{if(document.hidden && activePrivatePeek){clearImages($("peekContent"));$("peekContent").replaceChildren();delete $("peekContent").dataset.signature;peekGeneration++;}else if(activePrivatePeek)action(refreshPrivatePeek);});
   $("memoryDate").onchange=()=>{const date=new Date($("memoryDate").value+"T12:00:00");if(!Number.isNaN(date.getTime()) && $("memoryDate").value<=localDate(new Date())){memoryWeek=startOfWeek(date);action(loadMoments);}else updateMemoryControls();};
   updateMemoryControls();updateWallControls();action(async()=>{await loadProfile();await loadMoments();});
 });
 function updateWallControls() {
+  applyWallColour($("wall"),wallColours[currentWall]);$("wallColour").value=wallColours[currentWall];
   $("mainWallTab").textContent=wallNames.main;$("privateWallTab").textContent="🔒 "+wallNames.private;
   $("mainWallTab").setAttribute("aria-pressed",currentWall==="main");
   $("privateWallTab").setAttribute("aria-pressed",currentWall==="private");
@@ -359,12 +362,13 @@ function updateCapturePreview() {
 }
 
 async function loadWallNames(userId) {
-  const rows=check(await supabaseClient.from("wall_names").select("wall_scope,name").eq("user_id",userId));
+  const rows=check(await supabaseClient.from("wall_names").select("wall_scope,name,colour").eq("user_id",userId));
   const session=check(await supabaseClient.auth.getSession()).session;if(session?.user.id!==userId)return;
-  wallNames={main:"My moments",private:"Locked wall"};rows.forEach(r=>{wallNames[r.wall_scope]=r.name;});updateWallControls();
+  wallNames={main:"My moments",private:"Locked wall"};wallColours={main:"dark",private:"dark"};rows.forEach(r=>{wallNames[r.wall_scope]=r.name;wallColours[r.wall_scope]=r.colour || "dark";});updateWallControls();
 }
 async function readWallName(userId,scope) {
-  const data=check(await supabaseClient.from("wall_names").select("name").eq("user_id",userId).eq("wall_scope",scope).maybeSingle());
+  const data=check(await supabaseClient.from("wall_names").select("name,colour").eq("user_id",userId).eq("wall_scope",scope).maybeSingle());
+  applyWallColour($("peekContent"),data?.colour || "dark");
   return data?.name || (scope==="private"?"Locked wall":"My moments");
 }
 async function renameWall() {
@@ -377,3 +381,18 @@ async function renameWall() {
   wallNames[scope]=name;updateWallControls();notice("Wall renamed 🐋");
 }
 
+
+function applyWallColour(container,colour) {
+  const chosen=Object.hasOwn(WALL_COLOURS,colour)?colour:"dark";
+  container.style.backgroundColor=WALL_COLOURS[chosen];container.classList.toggle("light-wall",chosen!=="dark");
+}
+async function saveWallColour() {
+  const scope=currentWall;const colour=$("wallColour").value;
+  try {
+    const user=await requireUser();if(!Object.hasOwn(WALL_COLOURS,colour))throw new Error("Choose a wall colour.");
+    const existing=check(await supabaseClient.from("wall_names").select("name").eq("user_id",user.id).eq("wall_scope",scope).maybeSingle());
+    if(existing)check(await supabaseClient.from("wall_names").update({colour}).eq("user_id",user.id).eq("wall_scope",scope).select("colour").single());
+    else check(await supabaseClient.from("wall_names").insert({user_id:user.id,wall_scope:scope,name:wallNames[scope],colour}));
+    wallColours[scope]=colour;updateWallControls();notice("Wall colour saved 🎨");
+  }catch(error){$("wallColour").value=wallColours[currentWall];throw error;}
+}
