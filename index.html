@@ -30,9 +30,12 @@
       </div>
 
     </section>
-    <section id="wall">
-      <div class="wall-empty">Log in to see your moments 🐋</div>
-    </section>
+    <div id="photoWallFrame">
+      <section id="wall">
+        <div class="wall-empty">Log in to see your moments 🐋</div>
+      </section>
+      <button id="captureButton" class="capture" onclick="openCapture()">📸 Capture</button>
+    </div>
       <div id="privateControls" hidden>
         <p>Just for you, unless you invite someone for 24 hours.</p>
         <p class="privacy-hint">Only invite people you trust—photos can be saved or screenshotted.</p>
@@ -49,7 +52,6 @@
   </main>
 
   <div id="appNotice" role="status" aria-live="polite" hidden></div>
-  <button id="captureButton" class="capture" onclick="openCapture()">📸 Capture</button>
 
   <div id="capturePanel" class="capture-panel">
     <div class="capture-box" role="dialog" aria-modal="true" aria-label="Capture a moment">

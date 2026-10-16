@@ -131,3 +131,7 @@ nav button{border:0;background:transparent;color:#858994;font-size:12px;display:
 nav {z-index:90;height:calc(67px + env(safe-area-inset-bottom,0px));padding-bottom:env(safe-area-inset-bottom,0px);bottom:0;transform:translateZ(0);}
 .capture {bottom:calc(83px + env(safe-area-inset-bottom,0px));}
 @media(max-width:600px){#peekContent {min-height:535px;}#peekContent .peek-card {width:155px;}}
+
+/* Capture belongs to the photo wall, not the fixed bottom navigation. */
+#photoWallFrame {position:relative;margin-top:28px;}
+#captureButton.capture {position:absolute;top:-22px;right:16px;bottom:auto;z-index:2;min-height:46px;padding:12px 20px;border:1px solid #d6c7b0;box-shadow:0 5px 16px #0006;}

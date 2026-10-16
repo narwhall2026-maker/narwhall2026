@@ -33,6 +33,7 @@ function clearPeek() {
   clearImages($("peekContent"));$("peekContent").replaceChildren();delete $("peekContent").dataset.signature;
 }
 function showScreen(screen) {
+  $("photoWallFrame").hidden=screen!=="wall";
   if(screen!=="peek") clearPeek();
   $("wallControls").hidden=screen!=="wall";
   $("wallBrowseControls").hidden=screen!=="wall";
