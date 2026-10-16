@@ -135,3 +135,5 @@ nav {z-index:90;height:calc(67px + env(safe-area-inset-bottom,0px));padding-bott
 /* Capture belongs to the photo wall, not the fixed bottom navigation. */
 #photoWallFrame {position:relative;margin-top:28px;}
 #captureButton.capture {position:absolute;top:-22px;right:16px;bottom:auto;z-index:2;min-height:46px;padding:12px 20px;border:1px solid #d6c7b0;box-shadow:0 5px 16px #0006;}
+
+#captureButton.capture {top:auto;bottom:16px;right:16px;width:58px;height:58px;min-height:58px;padding:0;border-radius:50%;display:grid;place-items:center;font-size:25px;}
