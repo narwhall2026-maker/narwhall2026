@@ -142,3 +142,19 @@ nav {z-index:90;height:calc(67px + env(safe-area-inset-bottom,0px));padding-bott
 #wallColour {min-height:42px;max-width:180px;padding:8px 12px;border:1px solid #55505a;border-radius:14px;background:#191c24;color:#f3e8d6;font:inherit;}
 #wall.light-wall .wall-message,#wall.light-wall .wall-empty,#peekContent.light-wall .wall-message {color:#4b4149;}
 #wall,#peekContent {transition:background-color .2s;}
+
+.personalise-wall {max-width:420px;margin:14px auto 8px;border:1px solid #3e414c;border-radius:18px;background:#151820;padding:12px 16px;}
+.personalise-wall summary {cursor:pointer;font-size:14px;font-weight:600;min-height:28px;}
+.personalise-wall .wall-colour-control {justify-content:space-between;margin:12px 0;}
+.personalise-wall select {width:180px;max-width:60%;min-height:44px;padding:10px;border:1px solid #55505a;border-radius:12px;background:#191c24;color:#f3e8d6;}
+.personalise-wall button {width:100%;padding:12px;border:0;border-radius:13px;background:#f3e8d6;color:#28231e;font-weight:600;}
+.personalise-wall p {font-size:11px;line-height:1.5;color:#aaa9ae;margin:10px 0 0;}
+#wall[data-background="plain"],#peekContent[data-background="plain"] {background-image:none;}
+#wall[data-background="cork"],#peekContent[data-background="cork"] {background-color:#c79d69!important;background-image:radial-gradient(#75572d55 .8px,transparent 1.4px),radial-gradient(#fff5 .8px,transparent 1.4px);background-size:7px 9px,11px 13px;background-position:0 0,3px 5px;}
+#wall[data-background="paper"],#peekContent[data-background="paper"] {background-image:repeating-linear-gradient(transparent 0,transparent 27px,#889aaf40 28px,#889aaf40 29px);}
+#wall[data-background="dots"],#peekContent[data-background="dots"] {background-image:radial-gradient(#8e8e9255 1.3px,transparent 1.5px);background-size:19px 19px;}
+#wall[data-frame="classic"],#peekContent[data-frame="classic"] {border:1px solid #242831;}
+#wall[data-frame="cream"],#peekContent[data-frame="cream"] {border:10px solid #f2e5cc;box-shadow:inset 0 0 0 2px #baa88c,0 12px 28px #0005;}
+#wall[data-frame="wood"],#peekContent[data-frame="wood"] {border:12px ridge #96704a;box-shadow:0 12px 28px #0006;}
+#wall[data-frame="pastel"],#peekContent[data-frame="pastel"] {border:9px solid #dcaec2;box-shadow:0 5px 0 #9c6c85,0 12px 28px #0005;}
+#wall[data-frame="neon"],#peekContent[data-frame="neon"] {border:3px solid #8ce8ff;box-shadow:0 0 12px #57d5ff99,inset 0 0 12px #57d5ff55;}
