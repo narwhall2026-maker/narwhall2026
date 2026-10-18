@@ -10,6 +10,9 @@ let wallNames={main:"My moments",private:"Locked wall"};
 let wallColours={main:"dark",private:"dark"};
 let wallStyles={main:{background:"plain",frame:"classic"},private:{background:"plain",frame:"classic"}};
 const WALL_COLOURS={dark:"#13161d",cream:"#eee3cf",blush:"#e7c4cc",lavender:"#d4c9eb",sky:"#c4deed",sage:"#cadbc5"};
+let currentScreen="wall", communityGeneration=0, communityLoading=false, communityCursor=null, communityHasMore=true;
+const communitySeen=new Set();
+const COMMUNITY_PAGE=20;
 const imageUrls = new Set();
 const $ = id => document.getElementById(id);
 function notice(message, error=false) {
@@ -36,19 +39,22 @@ function clearPeek() {
   clearImages($("peekContent"));$("peekContent").replaceChildren();delete $("peekContent").dataset.signature;
 }
 function showScreen(screen) {
+  if(currentScreen==="community" && screen!=="community")clearCommunity();
+  currentScreen=screen;
   $("photoWallFrame").hidden=screen!=="wall";
   if(screen!=="peek") clearPeek();
   $("wallControls").hidden=screen!=="wall";
   $("wallBrowseControls").hidden=screen!=="wall";
   $("privateControls").hidden=screen!=="wall" || currentWall!=="private";
   $("moreMemoriesButton").hidden=true;
-  ["wall","friendsScreen","profileScreen","peekScreen","signupScreen","loginScreen","resetScreen"].forEach(id=>{if($(id)) $(id).style.display="none";});
+  ["wall","communityScreen","friendsScreen","profileScreen","peekScreen","signupScreen","loginScreen","resetScreen"].forEach(id=>{if($(id)) $(id).style.display="none";});
   const target=screen==="wall"?"wall":screen+"Screen"; if($(target)) $(target).style.display="block";
   $("intro").hidden=screen!=="wall"; $("captureButton").hidden=screen!=="wall";
   document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("active",b.dataset.screen===screen));
   if(screen==="wall") action(async()=>{await loadMoments();if(currentWall==="private")await loadPrivateAccess();});
   if(screen==="friends") action(async()=>{await Promise.all([loadFriendRequests(),loadFriends(),loadSharedMomentRequests(),loadPrivateInvites()]);});
   if(screen==="profile") action(loadProfile);
+  if(screen==="community")action(()=>loadCommunity(true));
 }
 function updateWordCount() {
   const input=$("momentCaption"); const value=Array.from(input.value).slice(0,15).join("");
@@ -81,8 +87,11 @@ async function handlePhotoSelect(event) {
     const image=document.createElement("img");image.src=selectedPhotoUrl;image.alt="Photo preview";$("photoPreview").replaceChildren(image);updateCapturePreview();
   } finally {if(generation===photoSelection) $("pinButton").disabled=!selectedPhoto;}
 }
-function openCapture() { action(async()=>{await requireUser();captureScope=currentWall;$("captureTitle").textContent=captureScope==="private"?"A locked-wall moment 🔒":"Capture a moment";$("captureShare").hidden=captureScope==="private";$("shareFriend").value="";$("capturePanel").classList.add("open");updateCapturePreview();if(selectedPhoto)$("momentCaption").focus();else $("choosePhotoButton").focus();updateWordCount();if(captureScope==="main")await loadShareFriends();}); }
-function closeCapture() { $("capturePanel").classList.remove("open");$("captureButton").focus(); }
+function openCapture(scope=currentWall) { action(async()=>{await requireUser();
+  if(!["main","private","community"].includes(scope))return;
+  if(captureScope!==scope){photoSelection++;selectedPhoto=null;if(selectedPhotoUrl)URL.revokeObjectURL(selectedPhotoUrl);selectedPhotoUrl=null;$("momentPhoto").value="";$("momentCaption").value="";}
+  captureScope=scope;$("captureTitle").textContent=captureScope==="community"?"Post to Community 🌍":captureScope==="private"?"A locked-wall moment 🔒":"Capture a moment";$("captureShare").hidden=captureScope!=="main";$("shareFriend").value="";$("capturePanel").classList.add("open");updateCapturePreview();if(selectedPhoto)$("momentCaption").focus();else $("choosePhotoButton").focus();updateWordCount();if(captureScope==="main")await loadShareFriends();}); }
+function closeCapture() { $("capturePanel").classList.remove("open");(captureScope==="community"?$("communityCaptureButton"):$("captureButton")).focus(); }
 async function mediaRequest(path, options={}) {
   const session=check(await supabaseClient.auth.getSession()).session;
   if(!session) throw new Error("Please log in first.");
@@ -101,14 +110,16 @@ async function saveMoment() {
     if(!selectedPhoto) throw new Error("Add a photo first 🐋");
     if(!caption || Array.from(caption).length>15) throw new Error("Add a caption of 1–15 characters.");
     const upload=await (await mediaRequest("/upload",{method:"PUT",body:selectedPhoto,headers:{"Content-Type":"image/jpeg"}})).json();
-    const moment=check(await supabaseClient.from("moments").insert({user_id:user.id,wall_scope:scope,caption,photo_url:upload.key,position_x:5+Math.random()*35,position_y:5+Math.random()*40,rotation:Math.random()*12-6}).select().single());
-    let message=scope==="private"?"Locked-wall moment saved 🔒":"Moment saved! 🐋";
+    let moment;
+    if(scope==="community") check(await supabaseClient.from("community_posts").insert({user_id:user.id,caption,photo_url:upload.key}));
+    else moment=check(await supabaseClient.from("moments").insert({user_id:user.id,wall_scope:scope,caption,photo_url:upload.key,position_x:5+Math.random()*35,position_y:5+Math.random()*40,rotation:Math.random()*12-6}).select().single());
+    let message=scope==="community"?"Posted to the Community wall 🌍":scope==="private"?"Locked-wall moment saved 🔒":"Moment saved! 🐋";
     if(friend) {
       const result=await supabaseClient.from("shared_moments").insert({moment_id:moment.id,from_user_id:user.id,to_user_id:friend});
       if(result.error) message="Moment saved. Sharing failed — you can retry with Share on the card.";
     }
     selectedPhoto=null;if(selectedPhotoUrl) URL.revokeObjectURL(selectedPhotoUrl);selectedPhotoUrl=null;
-    $("momentPhoto").value="";$("momentCaption").value="";$("photoPreview").replaceChildren();updateWordCount();updateCapturePreview();closeCapture();notice(message);await loadMoments();
+    $("momentPhoto").value="";$("momentCaption").value="";$("photoPreview").replaceChildren();updateWordCount();updateCapturePreview();closeCapture();notice(message);if(scope==="community"){if(currentScreen==="community")await loadCommunity(true);}else await loadMoments();
   },$("pinButton"));} finally {saving=false;updateCapturePreview();}
 }
 function empty(container, message) { clearImages(container);container.replaceChildren();const p=document.createElement("p");p.className="wall-message";p.textContent=message;container.append(p); }
@@ -172,6 +183,7 @@ async function loadProfile() {
   const session=check(await supabaseClient.auth.getSession()).session;
   $("accountStatus").textContent=session?"Logged in as "+session.user.email:"Create an account to keep your moments.";
   $("signedOutActions").hidden=!!session;$("logoutButton").hidden=!session;$("username").disabled=!session;$("saveUsernameButton").disabled=!session;
+  await loadCommunityBlocks();
   if(session){const profile=check(await supabaseClient.from("profiles").select("username").eq("id",session.user.id).single());$("username").value=profile.username;}else $("username").value="";
 }
 async function saveUsername() {const user=await requireUser();const username=$("username").value.trim().toLowerCase();validateUsername(username);check(await supabaseClient.from("profiles").update({username}).eq("id",user.id).select("id").single());notice("Username saved 🐋");}
@@ -187,7 +199,7 @@ async function login() {
   const email=$("loginEmail").value.trim(),password=$("loginPassword").value;if(!email||!password)throw new Error("Enter your email and password.");
   check(await supabaseClient.auth.signInWithPassword({email,password}));$("loginPassword").value="";showScreen("wall");notice("Welcome back 🐋");
 }
-async function logout() {wallStyles={main:{background:"plain",frame:"classic"},private:{background:"plain",frame:"classic"}};wallColours={main:"dark",private:"dark"};wallNames={main:"My moments",private:"Locked wall"};currentWall="main";memoryView=false;updateMemoryControls();updateWallControls();clearPeek();check(await supabaseClient.auth.signOut());wallGeneration++;clearImages($("wall"));clearImages($("peekContent"));empty($("wall"),"Log in to see your moments 🐋");showScreen("profile");notice("Logged out.");}
+async function logout() {clearCommunity();wallStyles={main:{background:"plain",frame:"classic"},private:{background:"plain",frame:"classic"}};wallColours={main:"dark",private:"dark"};wallNames={main:"My moments",private:"Locked wall"};currentWall="main";memoryView=false;updateMemoryControls();updateWallControls();clearPeek();check(await supabaseClient.auth.signOut());wallGeneration++;clearImages($("wall"));clearImages($("peekContent"));empty($("wall"),"Log in to see your moments 🐋");showScreen("profile");notice("Logged out.");}
 async function resetPassword() {const email=$("loginEmail").value.trim();if(!email)throw new Error("Enter your email first.");check(await supabaseClient.auth.resetPasswordForEmail(email,{redirectTo:location.origin}));notice("Check your email for a password reset link.");}
 async function updatePassword() {const password=$("newPassword").value;if(password.length<8)throw new Error("Use at least 8 characters.");check(await supabaseClient.auth.updateUser({password}));$("newPassword").value="";showScreen("wall");notice("Password updated.");}
 async function addFriend() {
@@ -244,10 +256,11 @@ document.addEventListener("DOMContentLoaded",()=>{
   document.addEventListener("keydown",e=>{if(e.key==="Escape")closeCapture();});
   supabaseClient.auth.onAuthStateChange((event)=>{
     // Defer API work to avoid the auth client's session lock.
-    setTimeout(()=>{if(event==="PASSWORD_RECOVERY")showScreen("reset");else if(event==="SIGNED_OUT"){wallStyles={main:{background:"plain",frame:"classic"},private:{background:"plain",frame:"classic"}};wallColours={main:"dark",private:"dark"};wallGeneration++;wallNames={main:"My moments",private:"Locked wall"};currentWall="main";memoryView=false;updateMemoryControls();updateWallControls();clearPeek();empty($("wall"),"Log in to see your moments 🐋");action(loadProfile);}},0);
+    setTimeout(()=>{if(event==="PASSWORD_RECOVERY")showScreen("reset");else if(event==="SIGNED_OUT"){clearCommunity();wallStyles={main:{background:"plain",frame:"classic"},private:{background:"plain",frame:"classic"}};wallColours={main:"dark",private:"dark"};wallGeneration++;wallNames={main:"My moments",private:"Locked wall"};currentWall="main";memoryView=false;updateMemoryControls();updateWallControls();clearPeek();empty($("wall"),"Log in to see your moments 🐋");action(loadProfile);}},0);
   });
   document.addEventListener("visibilitychange",()=>{if(document.hidden && activePrivatePeek){clearImages($("peekContent"));$("peekContent").replaceChildren();delete $("peekContent").dataset.signature;peekGeneration++;}else if(activePrivatePeek)action(refreshPrivatePeek);});
   $("memoryDate").onchange=()=>{const date=new Date($("memoryDate").value+"T12:00:00");if(!Number.isNaN(date.getTime()) && $("memoryDate").value<=localDate(new Date())){memoryWeek=startOfWeek(date);action(loadMoments);}else updateMemoryControls();};
+  if("IntersectionObserver" in window){const observer=new IntersectionObserver(entries=>{if(entries.some(e=>e.isIntersecting) && currentScreen==="community" && communityHasMore && !communityLoading)action(()=>loadCommunity(false));},{rootMargin:"350px"});observer.observe($("communitySentinel"));}
   updateMemoryControls();updateWallControls();action(async()=>{await loadProfile();await loadMoments();});
 });
 function updateWallControls() {
@@ -255,7 +268,7 @@ function updateWallControls() {
   $("mainWallTab").textContent=wallNames.main;$("privateWallTab").textContent="🔒 "+wallNames.private;
   $("mainWallTab").setAttribute("aria-pressed",currentWall==="main");
   $("privateWallTab").setAttribute("aria-pressed",currentWall==="private");
-  $("privateControls").hidden=currentWall!=="private";
+  $("privateControls").hidden=currentScreen!=="wall" || currentWall!=="private";
 }
 function setWall(scope) {
   if(scope!=="main" && scope!=="private")return;
@@ -355,7 +368,8 @@ function updateCapturePreview() {
   $("retakeButton").textContent=hasPhoto?"Retake":"Choose photo";
   $("retakeButton").disabled=saving;
   $("pinButton").disabled=!hasPhoto || saving;
-  $("captureHint").textContent=captureScope==="private"?"This moment goes on your locked wall 🔒":"Pick a photo, add a little caption, then pin it.";
+  $("pinButton").textContent=captureScope==="community"?"Post publicly":"Pin";
+  $("captureHint").textContent=captureScope==="community"?"Everyone logged in can see this photo and your username.":captureScope==="private"?"This moment goes on your locked wall 🔒":"Pick a photo, add a little caption, then pin it.";
   if(!hasPhoto){
     const button=document.createElement("button");button.id="choosePhotoButton";button.className="choose-photo";button.textContent="📷 Choose a photo";button.onclick=chooseCapturePhoto;
     $("photoPreview").replaceChildren(button);
@@ -398,4 +412,80 @@ async function saveWallColour() {
     else check(await supabaseClient.from("wall_names").insert({user_id:user.id,wall_scope:scope,name:wallNames[scope],colour,background_style,frame_style}));
     wallColours[scope]=colour;wallStyles[scope]={background:background_style,frame:frame_style};updateWallControls();notice("Wall style saved 🎨");
   }catch(error){$("wallColour").value=wallColours[currentWall];throw error;}
+}
+
+
+function clearCommunity() {
+  communityGeneration++;communityLoading=false;communityCursor=null;communityHasMore=true;communitySeen.clear();
+  clearImages($("communityWall"));$("communityWall").replaceChildren();$("communityMoreButton").hidden=true;$("communityStatus").textContent="";
+}
+async function loadCommunity(reset=true) {
+  if(currentScreen!=="community")return;
+  if(reset)clearCommunity();
+  if(communityLoading || !communityHasMore)return;
+  const generation=communityGeneration;communityLoading=true;$("communityMoreButton").hidden=true;$("communityStatus").textContent="Loading moments…";
+  try {
+    const session=check(await supabaseClient.auth.getSession()).session;
+    if(generation!==communityGeneration)return;
+    if(!session){communityHasMore=false;empty($("communityWall"),"Log in to explore and post to the Community wall 🌍");$("communityStatus").textContent="";return;}
+    let query=supabaseClient.from("community_posts").select("id,user_id,caption,photo_url,created_at").is("deleted_at",null).is("removed_at",null).order("created_at",{ascending:false}).order("id",{ascending:false}).limit(COMMUNITY_PAGE+1);
+    if(communityCursor)query=query.or("created_at.lt."+communityCursor.created_at+",and(created_at.eq."+communityCursor.created_at+",id.lt."+communityCursor.id+")");
+    const result=check(await query);if(generation!==communityGeneration)return;
+    const posts=result.slice(0,COMMUNITY_PAGE);communityHasMore=result.length>COMMUNITY_PAGE;
+    const names=await profileMap(posts.map(p=>p.user_id));
+    if(generation!==communityGeneration)return;
+    const cards=await Promise.all(posts.filter(p=>!communitySeen.has(p.id)).map(p=>makeCommunityCard(p,names.get(p.user_id)||"Member",session.user.id)));
+    if(generation!==communityGeneration){cards.forEach(clearImages);return;}
+    const wall=$("communityWall");if(!communitySeen.size)wall.replaceChildren();
+    cards.forEach(card=>wall.append(card));posts.forEach(p=>communitySeen.add(p.id));
+    if(posts.length)communityCursor={created_at:posts.at(-1).created_at,id:posts.at(-1).id};
+    if(!communitySeen.size)empty(wall,"Be the first to pin a Community moment 🌍");
+    $("communityStatus").textContent=communityHasMore?"Keep scrolling for more moments…":communitySeen.size?"You're all caught up. More moments will appear as people post.":"";
+    $("communityMoreButton").hidden=!communityHasMore;
+  } catch(error) {
+    if(generation===communityGeneration){communityHasMore=true;$("communityStatus").textContent="Couldn't load moments. Tap below to try again.";$("communityMoreButton").hidden=false;throw error;}
+  } finally {
+    if(generation===communityGeneration){communityLoading=false;
+      if(currentScreen==="community" && communityHasMore && $("communitySentinel").getBoundingClientRect().top<window.innerHeight+350 && $("communityStatus").textContent.startsWith("Keep scrolling"))setTimeout(()=>action(()=>loadCommunity(false)),100);
+    }
+  }
+}
+async function makeCommunityCard(post,username,userId) {
+  const card=document.createElement("article");card.className="community-card";card.dataset.postId=post.id;
+  card.style.setProperty("--card-tilt",((parseInt(post.id.slice(-2),16)%7)-3)+"deg");
+  const img=document.createElement("img");img.alt=post.caption;img.decoding="async";
+  try{img.src=await photoUrl(post.photo_url);card.append(img);}catch{const missing=document.createElement("div");missing.className="community-photo-error";missing.textContent="Photo couldn't load. Refresh to try again.";card.append(missing);}
+  const caption=document.createElement("p");caption.className="community-caption";caption.textContent=post.caption;
+  const author=document.createElement("p");author.className="community-author";author.textContent="@"+username;
+  const date=document.createElement("time");date.dateTime=post.created_at;date.textContent=new Date(post.created_at).toLocaleString();
+  const controls=document.createElement("div");controls.className="community-card-actions";
+  const add=(label,task)=>{const b=document.createElement("button");b.textContent=label;b.onclick=()=>action(task,b);controls.append(b);};
+  if(post.user_id===userId)add("Remove",async()=>{
+    if(!confirm("Remove this photo from the Community wall?"))return;
+    check(await supabaseClient.from("community_posts").update({deleted_at:new Date().toISOString()}).eq("id",post.id).eq("user_id",userId));
+    notice("Community photo removed.");await loadCommunity(true);
+  });
+  else {
+    add("Report",()=>reportCommunityPost(post));
+    add("Block",async()=>{
+      if(!confirm("Block @"+username+" on Community? You won't see each other's Community posts."))return;
+      const user=await requireUser();const result=await supabaseClient.from("community_blocks").insert({blocker_id:user.id,blocked_id:post.user_id});
+      if(result.error && result.error.code!=="23505")throw result.error;
+      notice("Account blocked on Community. Manage blocks in Profile.");await loadCommunity(true);
+    });
+  }
+  card.append(caption,author,date,controls);return card;
+}
+async function reportCommunityPost(post) {
+  const reason=prompt("Why are you reporting this photo?\n1 · Spam\n2 · Harassment\n3 · Inappropriate content\n4 · Other\nEnter 1, 2, 3 or 4:");if(reason===null)return;
+  const reasons={1:"spam",2:"harassment",3:"inappropriate",4:"other"};const selected=reasons[reason.trim()];if(!selected)throw new Error("Choose a report reason from 1 to 4.");
+  const user=await requireUser();const result=await supabaseClient.from("community_reports").insert({post_id:post.id,reporter_id:user.id,reason:selected});
+  if(result.error?.code==="23505"){notice("You've already reported this photo.");return;}check(result);notice("Report received for review. Thank you.");
+}
+async function loadCommunityBlocks() {
+  const container=$("communityBlockedList");const session=check(await supabaseClient.auth.getSession()).session;container.replaceChildren();
+  if(!session){row(container,"Log in to manage blocked accounts.");return;}
+  const blocks=check(await supabaseClient.from("community_blocks").select("blocked_id").eq("blocker_id",session.user.id));
+  const names=await profileMap(blocks.map(b=>b.blocked_id));if(!blocks.length)row(container,"No blocked Community accounts.");
+  blocks.forEach(b=>row(container,"@"+(names.get(b.blocked_id)||"Member"),[["Unblock",async()=>{check(await supabaseClient.from("community_blocks").delete().eq("blocker_id",session.user.id).eq("blocked_id",b.blocked_id));await loadCommunityBlocks();notice("Account unblocked on Community.");}]]));
 }

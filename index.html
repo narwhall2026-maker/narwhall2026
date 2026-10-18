@@ -56,6 +56,14 @@
     <button id="moreMemoriesButton" hidden onclick="action(()=>loadMoments(true),this)">Load more from this week</button>
   </main>
 
+  <section id="communityScreen" style="display:none;">
+    <div class="community-heading"><div><h2>Community wall</h2><p>Everyone's moments. One never-ending wall.</p></div><button onclick="action(()=>loadCommunity(true),this)">↻ Refresh</button></div>
+    <p class="community-note">Visible to everyone logged in to Narwhall. Post your own photos, be kind, and report anything that doesn't belong.</p>
+    <button id="communityCaptureButton" onclick="openCapture('community')">📸 Post a public moment</button>
+    <div id="communityWall" aria-label="Community photos"></div>
+    <div id="communitySentinel"><p id="communityStatus" role="status" aria-live="polite"></p><button id="communityMoreButton" hidden onclick="action(()=>loadCommunity(false),this)">Load more moments</button></div>
+  </section>
+
   <div id="appNotice" role="status" aria-live="polite" hidden></div>
 
   <div id="capturePanel" class="capture-panel">
@@ -101,6 +109,7 @@
 
   <nav>
     <button data-screen="wall" onclick="showScreen('wall')">🏠 <span>Wall</span></button>
+    <button data-screen="community" onclick="showScreen('community')">🌍 <span>Community</span></button>
     <button data-screen="friends" onclick="showScreen('friends')">👥 <span>Friends</span></button>
     <button data-screen="profile" onclick="showScreen('profile')">👤 <span>Profile</span></button>
   </nav>
@@ -116,6 +125,7 @@
       <button onclick="showScreen('login')">🔑 Log in</button>
     </div>
     <button id="logoutButton" hidden>Log out</button>
+    <details id="communityBlockSettings"><summary>Blocked Community accounts</summary><div id="communityBlockedList"></div></details>
   </section>
 
   <section id="signupScreen" style="display: none;">
@@ -152,3 +162,4 @@
   <script src="app.js"></script>
 </body>
 </html>
+
