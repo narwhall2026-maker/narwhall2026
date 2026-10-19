@@ -26,8 +26,8 @@
       <div class="wall-colour-control"><label for="wallColour">🎨 Wall colour</label><select id="wallColour"><option value="dark">Dark</option><option value="cream">Cream</option><option value="blush">Blush pink</option><option value="lavender">Lavender</option><option value="sky">Sky blue</option><option value="sage">Sage green</option></select></div>
 <div class="wall-colour-control"><label for="wallBackground">Background</label><select id="wallBackground"><option value="plain">Plain colour</option><option value="cork">Corkboard</option><option value="paper">Cosmic night</option><option value="dots">Neon sunset</option></select></div>
 <div class="wall-colour-control"><label for="wallFrame">Outer frame</label><select id="wallFrame"><option value="classic">Classic dark</option><option value="cream">Liquid chrome</option><option value="wood">Wood</option><option value="pastel">Holographic</option><option value="neon">Neon arcade</option></select></div>
-<button id="saveWallStyleButton" onclick="action(saveWallColour,this)">Save wall style</button><p>Saved for this wall. Friends see it when they peek.</p></details>
-      <button id="renameWallButton" class="rename-wall" onclick="action(renameWall,this)">✎ Rename this wall</button>
+<button id="saveWallStyleButton" onclick="action(saveWallColour,this)">Save wall style</button><p>Saved for this wall. Friends see it when they peek.</p><div class="wall-rename-setting"><button id="renameWallButton" class="rename-wall" onclick="action(renameWall,this)">✎ Rename this wall</button></div></details>
+      <button id="friendsWallButton" class="friends-wall-button" data-screen="friends" onclick="showScreen('friends')">👥 Friends</button>
       </div>
 
       <div id="memoryControls" hidden>
@@ -112,7 +112,6 @@
 
   <nav>
     <button data-screen="wall" onclick="showScreen('wall')">🏠 <span>Wall</span></button>
-    <button data-screen="friends" onclick="showScreen('friends')">👥 <span>Friends</span></button>
   </nav>
 
   <section id="profileScreen" style="display: none;">

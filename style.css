@@ -310,3 +310,9 @@ body.capture-open {overflow:hidden;}
 @media(max-height:500px) and (max-width:900px){.capture-polaroid #photoPreview img {max-height:30dvh;}.choose-photo {min-height:130px;}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after {transition:none!important;scroll-behavior:auto!important;}}
 @media(max-width:600px){#wallColour {min-height:48px;}#addFriendButton,#peekScreen>button,#saveUsernameButton,#logoutButton {min-height:44px;}}
+
+.friends-wall-button {min-height:44px;padding:10px 16px;border:1px solid #484b55;border-radius:16px;background:#191c24;color:#f3e8d6;font-size:13px;font-weight:600;box-shadow:0 3px 0 #050609;}
+.friends-wall-button.active {background:#f3e8d6;color:#28231e;}
+.wall-rename-setting {border-top:1px solid #393c46;margin-top:14px;padding-top:12px;}
+.wall-tools .wall-rename-setting .rename-wall {width:100%;min-height:44px;margin:0;padding:10px;border:1px solid #55505a;border-radius:12px;background:#22252e;color:#f3e8d6;font-size:13px;text-decoration:none;}
+.wall-tools:has(details[open])>.friends-wall-button {display:block;margin:10px 0 0 auto;}
