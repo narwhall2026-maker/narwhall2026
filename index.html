@@ -61,6 +61,10 @@
 
   <section id="communityScreen" style="display:none;">
     <div class="community-heading"><div><h2>Community wall</h2><p>Everyone's moments. One never-ending wall.</p></div><button onclick="action(()=>loadCommunity(true),this)">↻ Refresh</button></div>
+    <div class="community-audience" role="group" aria-label="Show Community posts from">
+      <button id="communityEveryone" type="button" aria-pressed="true" onclick="setCommunityAudience('everyone')">🌍 Everyone</button>
+      <button id="communityFriends" type="button" aria-pressed="false" onclick="setCommunityAudience('friends')">👥 Friends</button>
+    </div>
     <p class="community-note">Visible to everyone logged in to Narwhall. Post your own photos, be kind, and report anything that doesn't belong.</p>
     <button id="communityCaptureButton" onclick="openCapture('community')">📸 Post a public moment</button>
     <div id="communityWall" aria-label="Community photos"></div>
@@ -162,5 +166,6 @@
   <script src="app.js"></script>
 </body>
 </html>
+
 
 

@@ -316,3 +316,9 @@ body.capture-open {overflow:hidden;}
 .wall-rename-setting {border-top:1px solid #393c46;margin-top:14px;padding-top:12px;}
 .wall-tools .wall-rename-setting .rename-wall {width:100%;min-height:44px;margin:0;padding:10px;border:1px solid #55505a;border-radius:12px;background:#22252e;color:#f3e8d6;font-size:13px;text-decoration:none;}
 .wall-tools:has(details[open])>.friends-wall-button {display:block;margin:10px 0 0 auto;}
+
+
+.community-audience {display:flex;gap:6px;padding:5px;margin-top:18px;border:1px solid #41434d;border-radius:18px;background:#101219;width:100%;max-width:360px;box-sizing:border-box;}
+.community-audience button {flex:1;min-height:46px;padding:10px 14px;border:0;border-radius:13px;background:transparent;color:#b9b6bf;font:inherit;font-size:14px;font-weight:600;cursor:pointer;}
+.community-audience button[aria-pressed="true"] {background:#eee3d2;color:#242128;box-shadow:0 2px 8px #0003;}
+.community-audience button:focus-visible {outline:2px solid #b4a4ee;outline-offset:2px;}

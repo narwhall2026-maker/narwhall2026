@@ -10,6 +10,7 @@ let wallNames={main:"My moments",private:"Locked wall"};
 let wallColours={main:"dark",private:"dark"};
 let wallStyles={main:{background:"plain",frame:"classic"},private:{background:"plain",frame:"classic"}};
 const WALL_COLOURS={dark:"#13161d",cream:"#eee3cf",blush:"#e7c4cc",lavender:"#d4c9eb",sky:"#c4deed",sage:"#cadbc5"};
+let communityAudience="everyone";
 let currentScreen="wall", communityGeneration=0, communityLoading=false, communityCursor=null, communityHasMore=true;
 const communitySeen=new Set();
 const COMMUNITY_PAGE=20;
@@ -114,7 +115,7 @@ async function saveMoment() {
     let moment;
     if(scope==="community") check(await supabaseClient.from("community_posts").insert({user_id:user.id,caption,photo_url:upload.key}));
     else moment=check(await supabaseClient.from("moments").insert({user_id:user.id,wall_scope:scope,caption,photo_url:upload.key,position_x:5+Math.random()*35,position_y:5+Math.random()*40,rotation:Math.random()*12-6}).select().single());
-    let message=scope==="community"?"Posted to the Community wall 🌍":scope==="private"?"Locked-wall moment saved 🔒":"Moment saved! 🐋";
+    let message=scope==="community"?(communityAudience==="friends"?"Posted publicly. Switch to Everyone to see your moment.":"Posted to the Community wall 🌍"):scope==="private"?"Locked-wall moment saved 🔒":"Moment saved! 🐋";
     if(friend) {
       const result=await supabaseClient.from("shared_moments").insert({moment_id:moment.id,from_user_id:user.id,to_user_id:friend});
       if(result.error) message="Moment saved. Sharing failed — you can retry with Share on the card.";
@@ -422,6 +423,13 @@ function clearCommunity() {
   communityGeneration++;communityLoading=false;communityCursor=null;communityHasMore=true;communitySeen.clear();
   clearImages($("communityWall"));$("communityWall").replaceChildren();$("communityMoreButton").hidden=true;$("communityStatus").textContent="";
 }
+async function setCommunityAudience(audience) {
+  if(!["everyone","friends"].includes(audience) || audience===communityAudience)return;
+  communityAudience=audience;
+  $("communityEveryone").setAttribute("aria-pressed",String(audience==="everyone"));
+  $("communityFriends").setAttribute("aria-pressed",String(audience==="friends"));
+  await action(()=>loadCommunity(true));
+}
 async function loadCommunity(reset=true) {
   if(currentScreen!=="community")return;
   if(reset)clearCommunity();
@@ -431,7 +439,15 @@ async function loadCommunity(reset=true) {
     const session=check(await supabaseClient.auth.getSession()).session;
     if(generation!==communityGeneration)return;
     if(!session){communityHasMore=false;empty($("communityWall"),"Log in to explore and post to the Community wall 🌍");$("communityStatus").textContent="";return;}
+    let friendIds=null;
+    if(communityAudience==="friends"){
+      const {user,rows}=await friendships();
+      if(generation!==communityGeneration)return;
+      friendIds=[...new Set(rows.map(r=>r.sender_id===user.id?r.receiver_id:r.sender_id))];
+      if(!friendIds.length){communityHasMore=false;empty($("communityWall"),"Add friends to see their public moments here. Everyone still shows the whole Community wall 🌍");$("communityStatus").textContent="";return;}
+    }
     let query=supabaseClient.from("community_posts").select("id,user_id,caption,photo_url,created_at").is("deleted_at",null).is("removed_at",null).order("created_at",{ascending:false}).order("id",{ascending:false}).limit(COMMUNITY_PAGE+1);
+    if(friendIds)query=query.in("user_id",friendIds);
     if(communityCursor)query=query.or("created_at.lt."+communityCursor.created_at+",and(created_at.eq."+communityCursor.created_at+",id.lt."+communityCursor.id+")");
     const result=check(await query);if(generation!==communityGeneration)return;
     const posts=result.slice(0,COMMUNITY_PAGE);communityHasMore=result.length>COMMUNITY_PAGE;
@@ -442,7 +458,7 @@ async function loadCommunity(reset=true) {
     const wall=$("communityWall");if(!communitySeen.size)wall.replaceChildren();
     cards.forEach(card=>wall.append(card));posts.forEach(p=>communitySeen.add(p.id));
     if(posts.length)communityCursor={created_at:posts.at(-1).created_at,id:posts.at(-1).id};
-    if(!communitySeen.size)empty(wall,"Be the first to pin a Community moment 🌍");
+    if(!communitySeen.size)empty(wall,communityAudience==="friends"?"Your friends haven’t posted any public moments yet.":"Be the first to pin a Community moment 🌍");
     $("communityStatus").textContent=communityHasMore?"Keep scrolling for more moments…":communitySeen.size?"You're all caught up. More moments will appear as people post.":"";
     $("communityMoreButton").hidden=!communityHasMore;
   } catch(error) {
