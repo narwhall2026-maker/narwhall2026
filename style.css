@@ -309,3 +309,4 @@ body.capture-open {overflow:hidden;}
 }
 @media(max-height:500px) and (max-width:900px){.capture-polaroid #photoPreview img {max-height:30dvh;}.choose-photo {min-height:130px;}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after {transition:none!important;scroll-behavior:auto!important;}}
+@media(max-width:600px){#wallColour {min-height:48px;}#addFriendButton,#peekScreen>button,#saveUsernameButton,#logoutButton {min-height:44px;}}
