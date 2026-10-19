@@ -40,7 +40,7 @@ function clearPeek() {
 }
 function showScreen(screen) {
   if(currentScreen==="community" && screen!=="community")clearCommunity();
-  currentScreen=screen;
+  currentScreen=screen;document.body.dataset.screen=screen;
   $("photoWallFrame").hidden=screen!=="wall";
   if(screen!=="peek") clearPeek();
   $("wallControls").hidden=screen!=="wall";
@@ -91,8 +91,8 @@ async function handlePhotoSelect(event) {
 function openCapture(scope=currentWall) { action(async()=>{await requireUser();
   if(!["main","private","community"].includes(scope))return;
   if(captureScope!==scope){photoSelection++;selectedPhoto=null;if(selectedPhotoUrl)URL.revokeObjectURL(selectedPhotoUrl);selectedPhotoUrl=null;$("momentPhoto").value="";$("momentCaption").value="";}
-  captureScope=scope;$("captureTitle").textContent=captureScope==="community"?"Post to Community 🌍":captureScope==="private"?"A locked-wall moment 🔒":"Capture a moment";$("captureShare").hidden=captureScope!=="main";$("shareFriend").value="";$("capturePanel").classList.add("open");updateCapturePreview();if(selectedPhoto)$("momentCaption").focus();else $("choosePhotoButton").focus();updateWordCount();if(captureScope==="main")await loadShareFriends();}); }
-function closeCapture() { $("capturePanel").classList.remove("open");(captureScope==="community"?$("communityCaptureButton"):$("captureButton")).focus(); }
+  captureScope=scope;$("captureTitle").textContent=captureScope==="community"?"Post to Community 🌍":captureScope==="private"?"A locked-wall moment 🔒":"Capture a moment";$("captureShare").hidden=captureScope!=="main";$("shareFriend").value="";$("capturePanel").classList.add("open");document.body.classList.add("capture-open");updateVisibleHeight();updateCapturePreview();if(selectedPhoto)$("momentCaption").focus();else $("choosePhotoButton").focus();updateWordCount();if(captureScope==="main")await loadShareFriends();}); }
+function closeCapture() { document.body.classList.remove("capture-open");$("capturePanel").classList.remove("open");(captureScope==="community"?$("communityCaptureButton"):$("captureButton")).focus(); }
 async function mediaRequest(path, options={}) {
   const session=check(await supabaseClient.auth.getSession()).session;
   if(!session) throw new Error("Please log in first.");
@@ -147,7 +147,7 @@ async function loadMoments(append=false) {
   }catch(e){return {error:e};}}));
   if(generation!==wallGeneration) {cards.forEach(c=>{if(c instanceof Element)clearImages(c);});return;}
   if(!append)wall.replaceChildren();
-  cards.forEach((c,index)=>{if(c instanceof Element){if(!archive)c.style.zIndex=String(10-index);wall.append(c);}});memoryOffset+=moments.length;
+  cards.forEach((c,index)=>{if(c instanceof Element){if(!archive)c.style.zIndex=String(10-index);wall.append(c);}});fitWallCards(wall);memoryOffset+=moments.length;
   $("moreMemoriesButton").hidden=!hasMore;
   if(cards.some(c=>c.error)) notice("Some photos could not load. Refresh your wall to try again.",true);
 }
@@ -233,7 +233,7 @@ async function openPeek(id,username) {
   const content=$("peekContent");empty(content,"Loading their wall…");
   const moments=check(await supabaseClient.from("moments").select("*").eq("user_id",id).eq("wall_scope","main").is("deleted_at",null).order("created_at",{ascending:false}).order("id",{ascending:false}).limit(10));
   if(!moments.length){empty(content,"No moments to peek at yet 🐋");return;}
-  const cards=await Promise.all(moments.map(m=>makeCard(m,content)));if(generation!==peekGeneration){cards.forEach(clearImages);return;}content.replaceChildren(...cards);
+  const cards=await Promise.all(moments.map(m=>makeCard(m,content)));if(generation!==peekGeneration){cards.forEach(clearImages);return;}content.replaceChildren(...cards);fitWallCards(content);
 }
 function closePeek() {clearImages($("peekContent"));$("peekContent").replaceChildren();showScreen("friends");}
 async function loadSharedMomentRequests() {
@@ -262,7 +262,9 @@ document.addEventListener("DOMContentLoaded",()=>{
   document.addEventListener("visibilitychange",()=>{if(document.hidden && activePrivatePeek){clearImages($("peekContent"));$("peekContent").replaceChildren();delete $("peekContent").dataset.signature;peekGeneration++;}else if(activePrivatePeek)action(refreshPrivatePeek);});
   $("memoryDate").onchange=()=>{const date=new Date($("memoryDate").value+"T12:00:00");if(!Number.isNaN(date.getTime()) && $("memoryDate").value<=localDate(new Date())){memoryWeek=startOfWeek(date);action(loadMoments);}else updateMemoryControls();};
   if("IntersectionObserver" in window){const observer=new IntersectionObserver(entries=>{if(entries.some(e=>e.isIntersecting) && currentScreen==="community" && communityHasMore && !communityLoading)action(()=>loadCommunity(false));},{rootMargin:"350px"});observer.observe($("communitySentinel"));}
-  updateMemoryControls();updateWallControls();action(async()=>{await loadProfile();await loadMoments();});
+  window.addEventListener("resize",()=>{updateVisibleHeight();requestAnimationFrame(()=>{fitWallCards($("wall"));fitWallCards($("peekContent"));});});
+  window.visualViewport?.addEventListener("resize",updateVisibleHeight);
+  updateVisibleHeight();updateMemoryControls();updateWallControls();action(async()=>{await loadProfile();await loadMoments();});
 });
 function updateWallControls() {
   applyWallColour($("wall"),wallColours[currentWall],wallStyles[currentWall]);$("wallColour").value=wallColours[currentWall];$("wallBackground").value=wallStyles[currentWall].background;$("wallFrame").value=wallStyles[currentWall].frame;
@@ -336,7 +338,7 @@ async function refreshPrivatePeek() {
     try {for(const m of moments)cards.push(await makeCard(m,content));await privatePermission(access.owner);}
     catch(error){cards.forEach(clearImages);throw error;}
     if(generation!==peekGeneration || activePrivatePeek!==access || document.hidden){cards.forEach(clearImages);return;}
-    clearImages(content);content.replaceChildren(...cards);content.dataset.signature=signature;
+    clearImages(content);content.replaceChildren(...cards);fitWallCards(content);content.dataset.signature=signature;
     if(!cards.length)empty(content,"No private moments yet.");
   } catch(error) {
     if(generation===peekGeneration && activePrivatePeek===access){clearPeek();showScreen("friends");notice(error.message,true);}
@@ -489,4 +491,18 @@ async function loadCommunityBlocks() {
   const blocks=check(await supabaseClient.from("community_blocks").select("blocked_id").eq("blocker_id",session.user.id));
   const names=await profileMap(blocks.map(b=>b.blocked_id));if(!blocks.length)row(container,"No blocked Community accounts.");
   blocks.forEach(b=>row(container,"@"+(names.get(b.blocked_id)||"Member"),[["Unblock",async()=>{check(await supabaseClient.from("community_blocks").delete().eq("blocker_id",session.user.id).eq("blocked_id",b.blocked_id));await loadCommunityBlocks();notice("Account unblocked on Community.");}]]));
+}
+
+
+function updateVisibleHeight() {
+  document.documentElement.style.setProperty("--visible-height",Math.round(window.visualViewport?.height || window.innerHeight)+"px");
+}
+function fitWallCards(container) {
+  if(container.classList.contains("memory-grid") || !container.clientWidth || !container.clientHeight)return;
+  container.querySelectorAll(".polaroid").forEach(card=>{
+    const maxX=Math.max(0,100-(card.offsetWidth+12)/container.clientWidth*100);
+    const maxY=Math.max(0,100-(card.offsetHeight+12)/container.clientHeight*100);
+    card.style.left=Math.max(2,Math.min(maxX,parseFloat(card.style.left)||0))+"%";
+    card.style.top=Math.max(2,Math.min(maxY,parseFloat(card.style.top)||0))+"%";
+  });
 }

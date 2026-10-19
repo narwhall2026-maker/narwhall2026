@@ -216,3 +216,96 @@ header {align-items:flex-start;}
 .community-link {min-height:42px;padding:9px 15px;border:1px solid #55505a;border-radius:16px;background:#191c24;color:#f3e8d6;font-size:12px;font-weight:600;box-shadow:0 3px 0 #050609;}
 .community-link.active {background:#f3e8d6;border-color:#f3e8d6;color:#28231e;}
 .community-link:active {transform:translateY(2px);box-shadow:0 1px 0 #050609;}
+
+/* Phone-first layout: safe edges, usable touch controls and one scrolling page. */
+html {scroll-padding-bottom:100px;}
+body {min-width:280px;}
+button,a,input,select,textarea,summary {-webkit-tap-highlight-color:transparent;}
+button,summary {touch-action:manipulation;}
+body:not([data-screen="wall"]) .app {padding-bottom:0;}
+body:not([data-screen="wall"]) header {margin-bottom:8px;}
+header {position:relative;min-width:0;}
+header .intro {position:absolute;right:66px;top:6px;margin:0;}
+#profileButton {flex-shrink:0;min-width:44px;min-height:44px;}
+#privateWallInvites>div {padding:14px;margin-top:10px;border:1px solid #30343d;border-radius:16px;background:#14171e;}
+#privateWallInvites button {min-height:44px;padding:10px 14px;border:0;border-radius:12px;background:#f3e8d6;color:#28231e;}
+#privateWallInvites p {overflow-wrap:anywhere;font-size:14px;}
+.wall-tools {display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:start;max-width:420px;margin:12px auto;}
+.wall-tools .personalise-wall {width:100%;margin:0;padding:0;}
+.wall-tools summary {display:flex;align-items:center;min-height:44px;padding:10px 12px;font-size:13px;}
+.wall-tools details[open] {padding:0 12px 12px;}
+.wall-tools:has(details[open]) {display:block;}
+.wall-tools .rename-wall {min-height:44px;margin:0;padding:10px 12px;font-size:12px;}
+.wall-tools:has(details[open]) .rename-wall {margin:5px auto 0;}
+nav {padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px);justify-content:space-evenly;gap:0;}
+nav button {min-height:54px;min-width:100px;width:min(42%,180px);padding:8px 18px;border-radius:15px;font-size:13px;}
+nav button.active {background:#23262f;}
+#friendRequests button,#sharedMomentRequests button,#friendsList button,#communityBlockedList button,#privateAccessList button {min-height:44px;margin-top:6px;}
+#accountStatus {overflow-wrap:anywhere;}
+body.capture-open {overflow:hidden;}
+.capture-panel {height:var(--visible-height,100dvh);bottom:auto;overflow-y:auto;overscroll-behavior:contain;align-items:flex-start;padding:max(20px,env(safe-area-inset-top,0px)) 18px max(20px,env(safe-area-inset-bottom,0px));}
+.capture-box {margin:auto;max-height:none;width:min(100%,410px);padding:20px 8px 8px;}
+.capture-box .close-capture {top:0;right:0;width:44px;height:44px;}
+.capture-box h2 {margin-right:42px;margin-left:12px;}
+.capture-panel.has-photo #photoPreview {min-height:0;}
+.capture-polaroid #photoPreview img {max-height:min(40dvh,320px);}
+.capture-actions button {min-height:48px;}
+.capture-box #shareFriend {font-size:16px;min-height:48px;}
+@media(max-width:600px){
+ .app {padding:14px max(14px,env(safe-area-inset-right,0px)) calc(94px + env(safe-area-inset-bottom,0px)) max(14px,env(safe-area-inset-left,0px));}
+ header {margin-bottom:18px;padding-bottom:12px;}
+ .brand-area {gap:7px;max-width:54%;}
+ .logo {font-size:31px;white-space:nowrap;line-height:1.2;}
+ .community-link {min-height:44px;padding:10px 12px;font-size:12px;border-radius:14px;}
+ header .intro {right:0;top:55px;}
+ .moments-sticker {padding:9px 10px;transform:rotate(4deg);}
+ .moments-sticker span:first-child {font-size:22px;}
+ .moments-sticker span:last-child {font-size:15px;}
+ #wallControls>.wall-tabs,#wallBrowseControls>.wall-tabs {margin:8px auto;gap:10px;}
+ #wallControls>.wall-tabs button,#wallBrowseControls>.wall-tabs button {min-height:50px;padding:12px 10px;font-size:14px;border-radius:17px;}
+ #photoWallFrame {margin-top:16px;}
+ #wall:not(.memory-grid),#peekContent {min-height:clamp(360px,54svh,500px);}
+ #wall .polaroid,#peekContent .peek-card {width:clamp(134px,39vw,164px);padding-bottom:46px;}
+ #wall.memory-grid .polaroid {width:100%;padding-bottom:16px;}
+ #wall.memory-grid {grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;padding:14px;}
+ .polaroid .share-card {min-height:44px;min-width:58px;bottom:0;left:0;font-size:12px;padding:8px;}
+ .polaroid .trash {min-width:44px;min-height:44px;bottom:0;right:0;opacity:1;font-size:21px;}
+ #wallBrowseControls {margin-top:16px;}
+ #wallBrowseControls>.wall-view-hint {font-size:12px;line-height:1.6;margin-bottom:14px;}
+ #privateControls {padding:16px;margin:16px auto;}
+ input:not([type="file"]),select,textarea,#wallColour,.personalise-wall select {font-size:16px;}
+ .personalise-wall select {min-width:0;width:58%;max-width:58%;}
+ .personalise-wall .wall-colour-control label {font-size:12px;}
+ #memoryControls {display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;}
+ #memoryControls button {min-height:44px;flex:1 1 120px;font-size:13px;margin:0;}
+ #memoryControls label {width:100%;font-size:12px;order:-2;}
+ #memoryDate {width:100%;min-width:0;min-height:44px;order:-1;margin:0;box-sizing:border-box;}
+ #memoryWeekLabel {width:100%;font-size:12px;}
+ #friendsScreen,#profileScreen,#peekScreen,#communityScreen {padding:16px 14px calc(100px + env(safe-area-inset-bottom,0px));}
+ #friendsScreen h2,#profileScreen h2,#peekScreen h2 {font-size:26px;overflow-wrap:anywhere;}
+ #profileScreen input {min-height:48px;}
+ .community-heading {align-items:flex-start;}
+ .community-heading h2 {font-size:30px;}
+ .community-heading button {min-height:44px;flex-shrink:0;}
+ #communityWall {gap:24px 14px;padding:18px 12px;}
+ .community-card-actions button {min-height:44px;min-width:44px;font-size:11px;padding:6px;}
+ .community-author {font-size:12px;}
+ .community-card time {font-size:10px;}
+ #communityCaptureButton {min-height:50px;width:100%;margin-bottom:22px;font-size:14px;}
+ #moreMemoriesButton {margin-bottom:16px;min-height:44px;}
+ #signupScreen,#loginScreen,#resetScreen {padding:24px 16px max(32px,env(safe-area-inset-bottom,0px));overscroll-behavior:contain;}
+ #signupScreen button,#loginScreen button,#resetScreen button {min-height:48px;}
+ .screen-back {min-height:44px;padding:10px 0;}
+ #appNotice {top:max(10px,env(safe-area-inset-top,0px));font-size:13px;}
+}
+@media(max-width:350px){
+ .logo {font-size:28px;}
+ .community-link {font-size:11px;padding:10px;}
+ .moments-sticker {padding:8px;}
+ .moments-sticker span:first-child {font-size:20px;}
+ .moments-sticker span:last-child {font-size:13px;}
+ .wall-tools summary {font-size:12px;padding:10px 8px;}
+ .wall-tools .rename-wall {font-size:11px;padding:10px 6px;}
+}
+@media(max-height:500px) and (max-width:900px){.capture-polaroid #photoPreview img {max-height:30dvh;}.choose-photo {min-height:130px;}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after {transition:none!important;scroll-behavior:auto!important;}}

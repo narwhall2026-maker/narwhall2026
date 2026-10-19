@@ -2,30 +2,33 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Narwhall 🐋</title>
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body data-screen="wall">
   <main class="app">
     <header>
       <div class="brand-area"><div class="logo">🐋 Narwhall</div><button id="communityButton" class="community-link" data-screen="community" onclick="showScreen('community')" aria-pressed="false">🌍 Community wall</button></div>
       <button id="profileButton" class="profile-button" aria-label="Profile">👤</button>
-    </header>
-
     <section id="intro" class="intro">
       <aside class="moments-sticker" aria-label="My moments are worth capturing"><span>my moments</span><span>are worth capturing</span></aside>
     </section>
+    </header>
+
+
 
     <section id="wallControls">
       <div class="wall-tabs"><button id="mainWallTab" onclick="setWall('main')" aria-pressed="true">My moments</button><button id="privateWallTab" onclick="setWall('private')" aria-pressed="false">🔒 Locked wall</button></div>
 
+      <div class="wall-tools">
       <details id="personaliseWall" class="personalise-wall"><summary>🎨 Personalise wall</summary>
       <div class="wall-colour-control"><label for="wallColour">🎨 Wall colour</label><select id="wallColour"><option value="dark">Dark</option><option value="cream">Cream</option><option value="blush">Blush pink</option><option value="lavender">Lavender</option><option value="sky">Sky blue</option><option value="sage">Sage green</option></select></div>
 <div class="wall-colour-control"><label for="wallBackground">Background</label><select id="wallBackground"><option value="plain">Plain colour</option><option value="cork">Corkboard</option><option value="paper">Cosmic night</option><option value="dots">Neon sunset</option></select></div>
 <div class="wall-colour-control"><label for="wallFrame">Outer frame</label><select id="wallFrame"><option value="classic">Classic dark</option><option value="cream">Liquid chrome</option><option value="wood">Wood</option><option value="pastel">Holographic</option><option value="neon">Neon arcade</option></select></div>
 <button id="saveWallStyleButton" onclick="action(saveWallColour,this)">Save wall style</button><p>Saved for this wall. Friends see it when they peek.</p></details>
       <button id="renameWallButton" class="rename-wall" onclick="action(renameWall,this)">✎ Rename this wall</button>
+      </div>
 
       <div id="memoryControls" hidden>
         <button onclick="moveMemoryWeek(-1)">← Older week</button>
@@ -160,4 +163,5 @@
   <script src="app.js"></script>
 </body>
 </html>
+
 
