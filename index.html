@@ -9,7 +9,7 @@
 <body>
   <main class="app">
     <header>
-      <div class="logo">🐋 Narwhall</div>
+      <div class="brand-area"><div class="logo">🐋 Narwhall</div><button id="communityButton" class="community-link" data-screen="community" onclick="showScreen('community')" aria-pressed="false">🌍 Community wall</button></div>
       <button id="profileButton" class="profile-button" aria-label="Profile">👤</button>
     </header>
 
@@ -109,7 +109,6 @@
 
   <nav>
     <button data-screen="wall" onclick="showScreen('wall')">🏠 <span>Wall</span></button>
-    <button data-screen="community" onclick="showScreen('community')">🌍 <span>Community</span></button>
     <button data-screen="friends" onclick="showScreen('friends')">👥 <span>Friends</span></button>
     <button data-screen="profile" onclick="showScreen('profile')">👤 <span>Profile</span></button>
   </nav>

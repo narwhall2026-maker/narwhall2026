@@ -50,7 +50,8 @@ function showScreen(screen) {
   ["wall","communityScreen","friendsScreen","profileScreen","peekScreen","signupScreen","loginScreen","resetScreen"].forEach(id=>{if($(id)) $(id).style.display="none";});
   const target=screen==="wall"?"wall":screen+"Screen"; if($(target)) $(target).style.display="block";
   $("intro").hidden=screen!=="wall"; $("captureButton").hidden=screen!=="wall";
-  document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("active",b.dataset.screen===screen));
+  document.querySelectorAll("[data-screen]").forEach(b=>b.classList.toggle("active",b.dataset.screen===screen));
+  $("communityButton").setAttribute("aria-pressed",screen==="community");
   if(screen==="wall") action(async()=>{await loadMoments();if(currentWall==="private")await loadPrivateAccess();});
   if(screen==="friends") action(async()=>{await Promise.all([loadFriendRequests(),loadFriends(),loadSharedMomentRequests(),loadPrivateInvites()]);});
   if(screen==="profile") action(loadProfile);

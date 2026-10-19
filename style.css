@@ -210,3 +210,9 @@ nav {z-index:90;height:calc(67px + env(safe-area-inset-bottom,0px));padding-bott
 nav {gap:clamp(12px,5vw,50px);}
 @media(max-width:600px){#communityScreen {padding-left:12px;padding-right:12px;}#communityWall {grid-template-columns:repeat(2,minmax(0,1fr));gap:24px 16px;padding:20px 14px;}.community-card {padding:8px 8px 11px;}.community-caption {font-size:21px;}.community-card-actions {gap:5px;}}
 @media(max-width:340px){#communityWall {grid-template-columns:minmax(0,1fr);max-width:250px;margin:auto;}}
+
+.brand-area {display:flex;flex-direction:column;align-items:flex-start;gap:9px;}
+header {align-items:flex-start;}
+.community-link {min-height:42px;padding:9px 15px;border:1px solid #55505a;border-radius:16px;background:#191c24;color:#f3e8d6;font-size:12px;font-weight:600;box-shadow:0 3px 0 #050609;}
+.community-link.active {background:#f3e8d6;border-color:#f3e8d6;color:#28231e;}
+.community-link:active {transform:translateY(2px);box-shadow:0 1px 0 #050609;}
