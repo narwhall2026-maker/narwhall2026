@@ -40,6 +40,7 @@ function clearPeek() {
   clearImages($("peekContent"));$("peekContent").replaceChildren();delete $("peekContent").dataset.signature;
 }
 function showScreen(screen) {
+  closeWallSnake();
   if(currentScreen==="community" && screen!=="community")clearCommunity();
   currentScreen=screen;document.body.dataset.screen=screen;
   $("photoWallFrame").hidden=screen!=="wall";
@@ -89,7 +90,7 @@ async function handlePhotoSelect(event) {
     const image=document.createElement("img");image.src=selectedPhotoUrl;image.alt="Photo preview";$("photoPreview").replaceChildren(image);updateCapturePreview();
   } finally {if(generation===photoSelection) $("pinButton").disabled=!selectedPhoto;}
 }
-function openCapture(scope=currentWall) { action(async()=>{await requireUser();
+function openCapture(scope=currentWall) { closeWallSnake(); action(async()=>{await requireUser();
   if(!["main","private","community"].includes(scope))return;
   if(captureScope!==scope){photoSelection++;selectedPhoto=null;if(selectedPhotoUrl)URL.revokeObjectURL(selectedPhotoUrl);selectedPhotoUrl=null;$("momentPhoto").value="";$("momentCaption").value="";}
   captureScope=scope;$("captureTitle").textContent=captureScope==="community"?"Post to Community 🌍":captureScope==="private"?"A locked-wall moment 🔒":"Capture a moment";$("captureShare").hidden=captureScope!=="main";$("shareFriend").value="";$("capturePanel").classList.add("open");document.body.classList.add("capture-open");updateVisibleHeight();updateCapturePreview();if(selectedPhoto)$("momentCaption").focus();else $("choosePhotoButton").focus();updateWordCount();if(captureScope==="main")await loadShareFriends();}); }
@@ -275,6 +276,7 @@ function updateWallControls() {
   $("privateControls").hidden=currentScreen!=="wall" || currentWall!=="private";
 }
 function setWall(scope) {
+  closeWallSnake();
   if(scope!=="main" && scope!=="private")return;
   currentWall=scope;wallGeneration++;empty($("wall"),"Loading your wall…");updateWallControls();
   action(async()=>{await loadMoments();if(scope==="private" && currentWall===scope)await loadPrivateAccess();});
@@ -359,7 +361,7 @@ function updateMemoryControls() {
   $("memoryWeekLabel").textContent=memoryWeek.toLocaleDateString()+" – "+end.toLocaleDateString();
   $("newerWeekButton").disabled=memoryWeek>=startOfWeek(new Date());
 }
-function setMemoryView(value){memoryView=!!value;wallGeneration++;empty($("wall"),"Loading your moments…");updateMemoryControls();action(loadMoments);}
+function setMemoryView(value){closeWallSnake();memoryView=!!value;wallGeneration++;empty($("wall"),"Loading your moments…");updateMemoryControls();action(loadMoments);}
 function moveMemoryWeek(direction){const next=new Date(memoryWeek);next.setDate(next.getDate()+direction*7);if(next>startOfWeek(new Date()))return;memoryWeek=next;action(loadMoments);}
 
 function chooseCapturePhoto() {
@@ -522,3 +524,82 @@ function fitWallCards(container) {
     card.style.top=Math.max(2,Math.min(maxY,parseFloat(card.style.top)||0))+"%";
   });
 }
+
+
+// Local, optional game: the existing wall stays behind this transparent canvas.
+let wallSnakeState=null, wallSnakeTimer=null, wallSnakeReturnFocus=null;
+const SNAKE_DIRS={up:{x:0,y:-1},down:{x:0,y:1},left:{x:-1,y:0},right:{x:1,y:0}};
+function newWallSnake(){
+  return {body:[{x:7,y:10},{x:6,y:10},{x:5,y:10}],direction:SNAKE_DIRS.right,next:SNAKE_DIRS.right,food:{x:14,y:10},score:0,running:false,over:false,turned:false};
+}
+function placeSnakeFood(state){
+  const free=[];
+  for(let y=0;y<20;y++)for(let x=0;x<20;x++)if(!state.body.some(p=>p.x===x&&p.y===y))free.push({x,y});
+  return free.length?free[Math.floor(Math.random()*free.length)]:null;
+}
+function snakeTurn(name){
+  const s=wallSnakeState,d=SNAKE_DIRS[name];if(!s || !s.running || !d || s.turned)return;
+  if(d.x===-s.direction.x && d.y===-s.direction.y)return;
+  s.next=d;s.turned=true;
+}
+function snakeStep(s){
+  s.direction=s.next;s.turned=false;
+  const head={x:s.body[0].x+s.direction.x,y:s.body[0].y+s.direction.y};
+  const eats=head.x===s.food.x&&head.y===s.food.y;
+  const obstacles=eats?s.body:s.body.slice(0,-1);
+  if(head.x<0||head.x>=20||head.y<0||head.y>=20||obstacles.some(p=>p.x===head.x&&p.y===head.y)){s.running=false;s.over=true;return;}
+  s.body.unshift(head);
+  if(eats){s.score++;s.food=placeSnakeFood(s);if(!s.food){s.running=false;s.over=true;}}
+  else s.body.pop();
+}
+function drawWallSnake(){
+  const s=wallSnakeState;if(!s)return;
+  const canvas=$("snakeCanvas"),ctx=canvas.getContext("2d"),size=600;
+  if(canvas.width!==size){canvas.width=size;canvas.height=size;}
+  ctx.clearRect(0,0,size,size);
+  ctx.strokeStyle="#ffffff12";ctx.lineWidth=1;
+  for(let i=1;i<20;i++){ctx.beginPath();ctx.moveTo(i*30,0);ctx.lineTo(i*30,600);ctx.moveTo(0,i*30);ctx.lineTo(600,i*30);ctx.stroke();}
+  s.body.forEach((p,i)=>{ctx.fillStyle=i?"#93f5bd":"#f4ffe8";ctx.shadowColor="#10251c";ctx.shadowBlur=5;ctx.fillRect(p.x*30+2,p.y*30+2,26,26);});ctx.shadowBlur=0;
+  if(s.food){ctx.fillStyle="#ff899d";ctx.beginPath();ctx.arc(s.food.x*30+15,s.food.y*30+15,10,0,Math.PI*2);ctx.fill();}
+  $("snakeScore").textContent=s.score;
+  $("snakePause").textContent=s.over?"Play again":s.running?"Pause":s.score||s.body[0].x!==7||s.body[0].y!==10?"Resume":"Start";
+  $("snakeStatus").textContent=s.over?(s.food?"Game over! Try again.":"You filled the wall!"):s.running?"Swipe, tap arrows, or use arrow keys / WASD.":"Tap Start or Resume. Space pauses the game.";
+}
+function toggleWallSnake(){
+  if(!wallSnakeState)return;
+  if(wallSnakeState.over)wallSnakeState=newWallSnake();
+  wallSnakeState.running=!wallSnakeState.running;drawWallSnake();
+}
+function openWallSnake(){
+  if(wallSnakeState)return;
+  wallSnakeReturnFocus=document.activeElement;wallSnakeState=newWallSnake();$("wallSnake").hidden=false;
+  $("wallSnake").scrollIntoView({block:"nearest",behavior:"auto"});drawWallSnake();$("snakeCanvas").focus({preventScroll:true});
+  wallSnakeTimer=setInterval(()=>{if(wallSnakeState?.running){snakeStep(wallSnakeState);drawWallSnake();}},160);
+}
+function closeWallSnake(){
+  if(!wallSnakeState)return;
+  clearInterval(wallSnakeTimer);wallSnakeTimer=null;wallSnakeState=null;$("wallSnake").hidden=true;
+  wallSnakeReturnFocus?.focus({preventScroll:true});
+}
+document.addEventListener("DOMContentLoaded",()=>{
+  $("snakePause").addEventListener("click",toggleWallSnake);
+  $("snakeClose").addEventListener("click",closeWallSnake);
+  document.querySelectorAll("[data-snake-dir]").forEach(b=>b.addEventListener("click",()=>snakeTurn(b.dataset.snakeDir)));
+  document.addEventListener("keydown",event=>{
+    if(!wallSnakeState)return;
+    const keys={ArrowUp:"up",w:"up",ArrowDown:"down",s:"down",ArrowLeft:"left",a:"left",ArrowRight:"right",d:"right"};
+    if(event.key==="Escape"){event.preventDefault();closeWallSnake();}
+    else if(event.key===" " && event.target===$("snakeCanvas")){event.preventDefault();toggleWallSnake();}
+    else if(keys[event.key]){event.preventDefault();snakeTurn(keys[event.key]);}
+  });
+  document.addEventListener("visibilitychange",()=>{if(document.hidden&&wallSnakeState){wallSnakeState.running=false;drawWallSnake();}});
+  window.addEventListener("blur",()=>{if(wallSnakeState){wallSnakeState.running=false;drawWallSnake();}});
+  let start=null;
+  $("snakeCanvas").addEventListener("pointerdown",event=>{start={x:event.clientX,y:event.clientY};$("snakeCanvas").setPointerCapture(event.pointerId);});
+  $("snakeCanvas").addEventListener("pointerup",event=>{
+    if(!start)return;const dx=event.clientX-start.x,dy=event.clientY-start.y;start=null;
+    if(Math.max(Math.abs(dx),Math.abs(dy))<15)return;
+    snakeTurn(Math.abs(dx)>Math.abs(dy)?dx>0?"right":"left":dy>0?"down":"up");
+  });
+  $("snakeCanvas").addEventListener("pointercancel",()=>{start=null;});
+});
