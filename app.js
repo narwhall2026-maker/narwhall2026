@@ -41,6 +41,7 @@ function clearPeek() {
 }
 function showScreen(screen) {
   closeWallSnake();
+  clearAdminReview();
   if(currentScreen==="community" && screen!=="community")clearCommunity();
   currentScreen=screen;document.body.dataset.screen=screen;
   $("photoWallFrame").hidden=screen!=="wall";
@@ -49,7 +50,7 @@ function showScreen(screen) {
   $("wallBrowseControls").hidden=screen!=="wall";
   $("privateControls").hidden=screen!=="wall" || currentWall!=="private";
   $("moreMemoriesButton").hidden=true;
-  ["wall","communityScreen","friendsScreen","profileScreen","peekScreen","signupScreen","loginScreen","resetScreen"].forEach(id=>{if($(id)) $(id).style.display="none";});
+  ["wall","adminScreen","communityScreen","friendsScreen","profileScreen","peekScreen","signupScreen","loginScreen","resetScreen"].forEach(id=>{if($(id)) $(id).style.display="none";});
   const target=screen==="wall"?"wall":screen+"Screen"; if($(target)) $(target).style.display="block";
   $("intro").hidden=screen!=="wall"; $("captureButton").hidden=screen!=="wall";
   document.querySelectorAll("[data-screen]").forEach(b=>b.classList.toggle("active",b.dataset.screen===screen));
@@ -57,6 +58,7 @@ function showScreen(screen) {
   if(screen==="wall") action(async()=>{await loadMoments();if(currentWall==="private")await loadPrivateAccess();});
   if(screen==="friends") action(async()=>{await Promise.all([loadFriendRequests(),loadFriends(),loadSharedMomentRequests(),loadPrivateInvites()]);});
   if(screen==="profile") action(loadProfile);
+  if(screen==="admin")action(()=>loadAdminAccounts());
   if(screen==="community")action(()=>loadCommunity(true));
 }
 function updateWordCount() {
@@ -186,6 +188,8 @@ async function loadProfile() {
   const session=check(await supabaseClient.auth.getSession()).session;
   $("accountStatus").textContent=session?"Logged in as "+session.user.email:"Create an account to keep your moments.";
   $("signedOutActions").hidden=!!session;$("logoutButton").hidden=!session;$("username").disabled=!session;$("saveUsernameButton").disabled=!session;
+  $("adminAreaButton").hidden=true;
+  if(session)$("adminAreaButton").hidden=!check(await supabaseClient.rpc("is_narwhall_admin"));
   await loadCommunityBlocks();
   if(session){const profile=check(await supabaseClient.from("profiles").select("username").eq("id",session.user.id).single());$("username").value=profile.username;}else $("username").value="";
 }
@@ -202,7 +206,7 @@ async function login() {
   const email=$("loginEmail").value.trim(),password=$("loginPassword").value;if(!email||!password)throw new Error("Enter your email and password.");
   check(await supabaseClient.auth.signInWithPassword({email,password}));$("loginPassword").value="";showScreen("wall");notice("Welcome back 🐋");
 }
-async function logout() {clearCommunity();wallStyles={main:{background:"plain",frame:"classic"},private:{background:"plain",frame:"classic"}};wallColours={main:"dark",private:"dark"};wallNames={main:"My moments",private:"Locked wall"};currentWall="main";memoryView=false;updateMemoryControls();updateWallControls();clearPeek();check(await supabaseClient.auth.signOut());wallGeneration++;clearImages($("wall"));clearImages($("peekContent"));empty($("wall"),"Log in to see your moments 🐋");showScreen("profile");notice("Logged out.");}
+async function logout() {clearAdminReview();$("adminAreaButton").hidden=true;clearCommunity();wallStyles={main:{background:"plain",frame:"classic"},private:{background:"plain",frame:"classic"}};wallColours={main:"dark",private:"dark"};wallNames={main:"My moments",private:"Locked wall"};currentWall="main";memoryView=false;updateMemoryControls();updateWallControls();clearPeek();check(await supabaseClient.auth.signOut());wallGeneration++;clearImages($("wall"));clearImages($("peekContent"));empty($("wall"),"Log in to see your moments 🐋");showScreen("profile");notice("Logged out.");}
 async function resetPassword() {const email=$("loginEmail").value.trim();if(!email)throw new Error("Enter your email first.");check(await supabaseClient.auth.resetPasswordForEmail(email,{redirectTo:location.origin}));notice("Check your email for a password reset link.");}
 async function updatePassword() {const password=$("newPassword").value;if(password.length<8)throw new Error("Use at least 8 characters.");check(await supabaseClient.auth.updateUser({password}));$("newPassword").value="";showScreen("wall");notice("Password updated.");}
 async function addFriend() {
@@ -259,7 +263,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   document.addEventListener("keydown",e=>{if(e.key==="Escape")closeCapture();});
   supabaseClient.auth.onAuthStateChange((event)=>{
     // Defer API work to avoid the auth client's session lock.
-    setTimeout(()=>{if(event==="PASSWORD_RECOVERY")showScreen("reset");else if(event==="SIGNED_OUT"){clearCommunity();wallStyles={main:{background:"plain",frame:"classic"},private:{background:"plain",frame:"classic"}};wallColours={main:"dark",private:"dark"};wallGeneration++;wallNames={main:"My moments",private:"Locked wall"};currentWall="main";memoryView=false;updateMemoryControls();updateWallControls();clearPeek();empty($("wall"),"Log in to see your moments 🐋");action(loadProfile);}},0);
+    setTimeout(()=>{if(event==="PASSWORD_RECOVERY")showScreen("reset");else if(event==="SIGNED_OUT"){clearAdminReview();$("adminAreaButton").hidden=true;clearCommunity();wallStyles={main:{background:"plain",frame:"classic"},private:{background:"plain",frame:"classic"}};wallColours={main:"dark",private:"dark"};wallGeneration++;wallNames={main:"My moments",private:"Locked wall"};currentWall="main";memoryView=false;updateMemoryControls();updateWallControls();clearPeek();empty($("wall"),"Log in to see your moments 🐋");action(loadProfile);}},0);
   });
   document.addEventListener("visibilitychange",()=>{if(document.hidden && activePrivatePeek){clearImages($("peekContent"));$("peekContent").replaceChildren();delete $("peekContent").dataset.signature;peekGeneration++;}else if(activePrivatePeek)action(refreshPrivatePeek);});
   $("memoryDate").onchange=()=>{const date=new Date($("memoryDate").value+"T12:00:00");if(!Number.isNaN(date.getTime()) && $("memoryDate").value<=localDate(new Date())){memoryWeek=startOfWeek(date);action(loadMoments);}else updateMemoryControls();};
@@ -603,3 +607,58 @@ document.addEventListener("DOMContentLoaded",()=>{
   });
   $("snakeCanvas").addEventListener("pointercancel",()=>{start=null;});
 });
+
+
+let adminGeneration=0,adminPage=0,adminSearchText="",adminWall=null,adminOffset=0,adminWallLoading=false;
+function clearAdminReview(){
+  adminGeneration++;adminWall=null;adminWallLoading=false;adminOffset=0;
+  clearImages($("adminPhotos"));$("adminPhotos").replaceChildren();$("adminAccountList").replaceChildren();
+  $("adminReview").hidden=true;$("adminMorePhotos").hidden=true;$("adminWallTitle").textContent="";$("adminStatus").textContent="";
+}
+async function loadAdminAccounts(delta=0){
+  const generation=++adminGeneration;adminWall=null;adminWallLoading=false;
+  clearImages($("adminPhotos"));$("adminPhotos").replaceChildren();$("adminReview").hidden=true;
+  $("adminAccountList").replaceChildren();$("adminNext").hidden=true;$("adminPrevious").hidden=true;
+  $("adminStatus").textContent="Checking admin access…";
+  try{
+    await requireUser();if(!check(await supabaseClient.rpc("is_narwhall_admin")))throw new Error("Admin access required.");
+    const search=$("adminSearch").value.trim();const page=search!==adminSearchText?0:Math.max(0,adminPage+delta);
+    const accounts=check(await supabaseClient.rpc("admin_account_list",{search_text:search,page_number:page}));
+    if(generation!==adminGeneration || currentScreen!=="admin")return;
+    adminPage=page;adminSearchText=search;
+    accounts.forEach(account=>{
+      const card=document.createElement("article");card.className="admin-account";
+      const name=document.createElement("strong");name.textContent="@"+(account.username||"Member");
+      const email=document.createElement("p");email.textContent=account.email;card.append(name,email);
+      const buttons=document.createElement("div");buttons.className="admin-pages";
+      [["main","Main wall",account.main_photo_count],["private","Locked wall",account.private_photo_count]].forEach(([scope,label,count])=>{
+        const b=document.createElement("button");b.textContent=label+" · "+count;b.onclick=()=>action(async()=>{adminWall={userId:account.user_id,scope,name:account.username||"Member"};await loadAdminWall(true);},b);buttons.append(b);
+      });card.append(buttons);$("adminAccountList").append(card);
+    });
+    $("adminPrevious").hidden=page===0;$("adminNext").hidden=accounts.length<25;
+    $("adminStatus").textContent=accounts.length?"Accounts · page "+(page+1):"No matching accounts.";
+  }catch(error){if(generation===adminGeneration){$("adminStatus").textContent=error.message;throw error;}}
+}
+async function loadAdminWall(reset=true){
+  if(!adminWall || currentScreen!=="admin" || (!reset&&adminWallLoading))return;
+  if(reset){adminGeneration++;adminOffset=0;clearImages($("adminPhotos"));$("adminPhotos").replaceChildren();}
+  const generation=adminGeneration,wall={...adminWall};adminWallLoading=true;$("adminMorePhotos").hidden=true;
+  $("adminReview").hidden=false;$("adminWallTitle").textContent="@"+wall.name+" · "+(wall.scope==="private"?"Locked wall":"Main wall");
+  $("adminStatus").textContent="Loading wall photos…";
+  try{
+    if(!check(await supabaseClient.rpc("is_narwhall_admin")))throw new Error("Admin access required.");
+    const posts=check(await supabaseClient.from("moments").select("id,caption,photo_url,created_at").eq("user_id",wall.userId).eq("wall_scope",wall.scope).is("deleted_at",null).order("created_at",{ascending:false}).order("id",{ascending:false}).range(adminOffset,adminOffset+19));
+    if(generation!==adminGeneration)return;
+    const cards=await Promise.all(posts.map(async post=>{
+      const card=document.createElement("article");card.className="admin-photo";
+      const img=document.createElement("img");img.alt=post.caption||"Wall photo";
+      try{img.src=await photoUrl(post.photo_url);card.append(img);}catch{const message=document.createElement("p");message.textContent="Photo unavailable. Reopen this wall to retry.";card.append(message);}
+      const caption=document.createElement("p");caption.textContent=post.caption;const time=document.createElement("time");time.dateTime=post.created_at;time.textContent=new Date(post.created_at).toLocaleString();card.append(caption,time);return card;
+    }));
+    if(generation!==adminGeneration){cards.forEach(clearImages);return;}
+    cards.forEach(card=>$("adminPhotos").append(card));adminOffset+=posts.length;
+    $("adminMorePhotos").hidden=posts.length<20;$("adminStatus").textContent=adminOffset?"Showing "+adminOffset+" photos. Read-only review.":"This wall has no photos.";
+  }catch(error){if(generation===adminGeneration){$("adminStatus").textContent=error.message;throw error;}}
+  finally{if(generation===adminGeneration)adminWallLoading=false;}
+}
+document.addEventListener("DOMContentLoaded",()=>{$("adminSearchForm").addEventListener("submit",event=>{event.preventDefault();adminPage=0;action(()=>loadAdminAccounts());});});

@@ -53,7 +53,7 @@
     </div>
       <div id="privateControls" hidden>
         <p>Just for you, unless you invite someone for 24 hours.</p>
-        <p class="privacy-hint">Only invite people you trust—photos can be saved or screenshotted.</p>
+        <p class="privacy-hint">Only invite people you trust—photos can be saved or screenshotted. Admins can review locked walls for moderation.</p>
         <label for="privateFriend">Let a friend see your locked wall</label>
         <select id="privateFriend"><option value="">Choose a friend</option></select>
         <button id="privateInviteButton">Invite for 24 hours</button>
@@ -135,10 +135,19 @@
       <button onclick="showScreen('signup')">🐋 Sign up</button>
       <button onclick="showScreen('login')">🔑 Log in</button>
     </div>
+    <button id="adminAreaButton" hidden onclick="showScreen('admin')">🛡 Admin area</button>
     <button id="logoutButton" hidden>Log out</button>
     <details id="communityBlockSettings"><summary>Blocked Community accounts</summary><div id="communityBlockedList"></div></details>
   </section>
 
+  <section id="adminScreen" style="display:none;">
+    <button class="screen-back" onclick="showScreen('profile')">← Profile</button>
+    <h2>Admin · Wall review</h2><p>Review main and locked walls for moderation.</p>
+    <form id="adminSearchForm"><label for="adminSearch">Find an account by email or username</label><input id="adminSearch" type="search" maxlength="100" placeholder="Start of email or username"><button type="submit">Search accounts</button></form>
+    <p id="adminStatus" role="status" aria-live="polite"></p><div id="adminAccountList"></div>
+    <div class="admin-pages"><button id="adminPrevious" onclick="action(()=>loadAdminAccounts(-1))" hidden>← Previous accounts</button><button id="adminNext" onclick="action(()=>loadAdminAccounts(1))" hidden>More accounts →</button></div>
+    <div id="adminReview" hidden><h3 id="adminWallTitle"></h3><div id="adminPhotos"></div><button id="adminMorePhotos" hidden onclick="action(()=>loadAdminWall(false),this)">More photos</button></div>
+  </section>
   <section id="signupScreen" style="display: none;">
     <button class="screen-back" onclick="showScreen('profile')">← Back</button>
     <h2>Create your Narwhal account 🐋</h2>
