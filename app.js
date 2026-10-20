@@ -768,3 +768,26 @@ async function requireCommunityAccess(){
   if(!access.unlocked)throw new Error("Add 5 photos to My moments to unlock Community ("+access.photo_count+"/5).");
 }
 function goUnlockCommunity(){action(async()=>{const session=check(await supabaseClient.auth.getSession()).session;if(!session){showScreen("login");return;}setWall("main");showScreen("wall");});}
+
+
+// Coarse account administration details; no raw user-agent, IP or device identifier is stored.
+let activityLastInput=Date.now(),activityLastAttempt=0,activityPending=false;
+async function recordAccountActivity(){
+  if(!supabaseClient || document.hidden || activityPending || Date.now()-activityLastInput>120000 || Date.now()-activityLastAttempt<60000)return;
+  activityPending=true;
+  try{
+    const session=check(await supabaseClient.auth.getSession()).session;
+    if(!session)return;
+    activityLastAttempt=Date.now();
+    await supabaseClient.rpc("record_account_activity");
+  }catch{/* Activity reporting must never interrupt normal app use. */}
+  finally{activityPending=false;}
+}
+document.addEventListener("DOMContentLoaded",()=>{
+  const activity=()=>{activityLastInput=Date.now();void recordAccountActivity();};
+  ["pointerdown","keydown","scroll"].forEach(type=>document.addEventListener(type,activity,{passive:true}));
+  document.addEventListener("visibilitychange",()=>{if(!document.hidden)activity();});
+  supabaseClient?.auth.onAuthStateChange(event=>{if(event==="SIGNED_IN"){activityLastAttempt=0;setTimeout(activity,0);}});
+  setInterval(()=>void recordAccountActivity(),120000);
+  void recordAccountActivity();
+});
