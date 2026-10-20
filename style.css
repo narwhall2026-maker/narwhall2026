@@ -349,3 +349,28 @@ body.capture-open {overflow:hidden;}
 .admin-photo img {display:block;width:100%;height:200px;object-fit:contain;background:#222;}
 .admin-photo time {font-size:11px;}
 @media(max-width:420px){#adminPhotos {grid-template-columns:1fr;}}
+
+/* Large, separated controls for thumbs. Games remain an overlay over wall photos. */
+#wallGameMenu {position:absolute;bottom:20px;left:16px;z-index:3;}
+#wallGameMenu summary {list-style:none;min-height:48px;box-sizing:border-box;padding:13px 16px;border:1px solid #81729e;border-radius:24px;background:#191b29;color:#f7eedf;cursor:pointer;}
+#wallGameMenu[open] {padding:8px;border-radius:20px;background:#151925;box-shadow:0 8px 28px #0008;}
+#wallGameMenu button,#wallGameMenu #wallSnakeButton {position:static;display:block;width:100%;margin-top:8px;min-height:48px;padding:10px 14px;border:1px solid #706785;border-radius:14px;background:#232638;color:#fff;font:inherit;cursor:pointer;text-align:left;}
+#wallSnake,#wallBounce {height:600px;max-height:100%;bottom:auto;}
+#photoWallFrame:has(#wallSnake:not([hidden])),#photoWallFrame:has(#wallBounce:not([hidden])) {min-height:600px;}
+#photoWallFrame:has(#wallSnake:not([hidden]))>#wallGameMenu,#photoWallFrame:has(#wallBounce:not([hidden]))>#wallGameMenu,#photoWallFrame:has(#wallBounce:not([hidden]))>#captureButton {visibility:hidden;}
+.snake-controls {display:grid;grid-template-columns:repeat(3,58px);grid-template-rows:repeat(3,52px);gap:6px;align-self:center;}
+.snake-controls button {width:58px!important;min-height:52px!important;font-size:28px!important;border-radius:16px!important;box-shadow:0 4px 0 #080b13;user-select:none;-webkit-user-select:none;}
+.snake-controls button:active,.bounce-controls button:active {background:#76639b!important;transform:translateY(2px);box-shadow:none;}
+[data-snake-dir="up"] {grid-column:2;grid-row:1;}
+[data-snake-dir="left"] {grid-column:1;grid-row:2;}
+[data-snake-dir="right"] {grid-column:3;grid-row:2;}
+[data-snake-dir="down"] {grid-column:2;grid-row:3;}
+#wallBounce {position:absolute;inset:0;z-index:10;border-radius:22px;background:#080c16a8;overflow:hidden;color:white;display:flex;flex-direction:column;padding:10px;gap:8px;box-sizing:border-box;}
+#wallBounce[hidden] {display:none;}
+#wallBounce button {min-height:48px;min-width:44px;border:1px solid #827696;border-radius:14px;background:#1b2133;color:white;font:inherit;cursor:pointer;touch-action:manipulation;}
+#bounceCanvas {display:block;width:100%;flex:1;min-height:0;touch-action:none;background:#03091825;border:1px solid #ffffff35;border-radius:8px;}
+#bounceStatus {font-size:12px;text-align:center;line-height:1.4;margin:0;min-height:34px;}
+.bounce-controls {display:flex;align-items:center;justify-content:center;gap:20px;flex-shrink:0;}
+.bounce-controls button {width:80px;min-height:58px!important;font-size:26px!important;user-select:none;-webkit-user-select:none;}
+#bounceLives {color:#ffb8cf;min-width:65px;text-align:center;}
+#wallBounce button:focus-visible,#bounceCanvas:focus-visible {outline:3px solid #e6d0ff;outline-offset:-3px;}

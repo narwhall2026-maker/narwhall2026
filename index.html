@@ -42,12 +42,18 @@
       <section id="wall">
         <div class="wall-empty">Log in to see your moments 🐋</div>
       </section>
-      <button id="wallSnakeButton" type="button" onclick="openWallSnake()">🐍 Play Snake</button>
+      <details id="wallGameMenu"><summary>🎮 Play a game</summary><button id="wallSnakeButton" type="button" onclick="openWallSnake()">🐍 Snake</button><button type="button" onclick="openWallBounce()">🐋 Bubble Bounce</button></details>
       <section id="wallSnake" hidden aria-label="Snake game">
         <div class="snake-toolbar"><strong>🐍 Snake · <span id="snakeScore">0</span></strong><button id="snakePause" type="button">Start</button><button id="snakeClose" type="button" aria-label="Close Snake">✕</button></div>
         <canvas id="snakeCanvas" tabindex="0" aria-label="Snake board. Use arrow keys or WASD to move. Space to pause."></canvas>
         <p id="snakeStatus" role="status">Your wall, your playground. Tap Start.</p>
         <div class="snake-controls" role="group" aria-label="Snake direction"><button type="button" data-snake-dir="up" aria-label="Move up">↑</button><button type="button" data-snake-dir="left" aria-label="Move left">←</button><button type="button" data-snake-dir="down" aria-label="Move down">↓</button><button type="button" data-snake-dir="right" aria-label="Move right">→</button></div>
+      </section>
+      <section id="wallBounce" hidden aria-label="Bubble Bounce game">
+        <div class="snake-toolbar"><strong>🐋 Bounce · <span id="bounceScore">0</span></strong><button id="bouncePause" type="button">Launch</button><button id="bounceClose" type="button" aria-label="Close Bubble Bounce">✕</button></div>
+        <canvas id="bounceCanvas" tabindex="0" aria-label="Bubble Bounce board. Drag to move the paddle, or use left and right arrow keys. Space launches or pauses."></canvas>
+        <p id="bounceStatus" role="status">Pop the narwhal bubbles! Three lives.</p>
+        <div class="bounce-controls" role="group" aria-label="Paddle direction"><button type="button" data-bounce-dir="left" aria-label="Move paddle left">◀</button><span id="bounceLives" aria-label="Lives remaining">♥ ♥ ♥</span><button type="button" data-bounce-dir="right" aria-label="Move paddle right">▶</button></div>
       </section>
       <button id="captureButton" class="capture" onclick="openCapture()" aria-label="Capture a moment" title="Capture a moment">📸</button>
     </div>
