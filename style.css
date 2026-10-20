@@ -374,3 +374,5 @@ body.capture-open {overflow:hidden;}
 .bounce-controls button {width:80px;min-height:58px!important;font-size:26px!important;user-select:none;-webkit-user-select:none;}
 #bounceLives {color:#ffb8cf;min-width:65px;text-align:center;}
 #wallBounce button:focus-visible,#bounceCanvas:focus-visible {outline:3px solid #e6d0ff;outline-offset:-3px;}
+
+#snakeCanvas,#bounceCanvas {object-fit:contain;}

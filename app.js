@@ -732,7 +732,7 @@ function pauseWallBounce(){bounceKeys.clear();if(wallBounceState){wallBounceStat
 document.addEventListener("DOMContentLoaded",()=>{
   $("bouncePause").addEventListener("click",toggleWallBounce);$("bounceClose").addEventListener("click",closeWallBounce);
   const canvas=$("bounceCanvas");let dragId=null;
-  const drag=event=>{if(!wallBounceState)return;const r=canvas.getBoundingClientRect();moveBouncePaddle(wallBounceState,(event.clientX-r.left)/r.width*600);drawWallBounce();};
+  const drag=event=>{if(!wallBounceState)return;const r=canvas.getBoundingClientRect();const side=Math.min(r.width,r.height),left=r.left+(r.width-side)/2;moveBouncePaddle(wallBounceState,(event.clientX-left)/side*600);drawWallBounce();};
   canvas.addEventListener("pointerdown",event=>{event.preventDefault();dragId=event.pointerId;canvas.setPointerCapture(event.pointerId);drag(event);});
   canvas.addEventListener("pointermove",event=>{if(event.pointerId===dragId)drag(event);});
   canvas.addEventListener("pointerup",()=>{dragId=null;});canvas.addEventListener("pointercancel",()=>{dragId=null;});
