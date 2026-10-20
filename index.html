@@ -74,11 +74,12 @@
 
   <section id="communityScreen" style="display:none;">
     <div class="community-heading"><div><h2>Community wall</h2><p>Everyone's moments. One never-ending wall.</p></div><button onclick="action(()=>loadCommunity(true),this)">↻ Refresh</button></div>
-    <div class="community-audience" role="group" aria-label="Show Community posts from">
+    <div id="communityAudienceControls" class="community-audience" role="group" aria-label="Show Community posts from">
       <button id="communityEveryone" type="button" aria-pressed="true" onclick="setCommunityAudience('everyone')">🌍 Everyone</button>
       <button id="communityFriends" type="button" aria-pressed="false" onclick="setCommunityAudience('friends')">👥 Friends</button>
     </div>
-    <p class="community-note">Visible to everyone logged in to Narwhall. Post your own photos, be kind, and report anything that doesn't belong.</p>
+    <div id="communityUnlock" hidden class="community-unlock"><h3>🔒 Unlock the Community wall</h3><p id="communityUnlockHint">Add 5 photos to My moments to join in.</p><progress id="communityUnlockProgress" max="5" value="0" aria-label="Main-wall photos towards Community access"></progress><button id="communityUnlockAction" type="button" onclick="goUnlockCommunity()">Add photos to My moments</button></div>
+    <p class="community-note">Visible to Narwhall members who have unlocked Community. Post your own photos, be kind, and report anything that doesn't belong.</p>
     <button id="communityCaptureButton" onclick="openCapture('community')">📸 Post a public moment</button>
     <div id="communityWall" aria-label="Community photos"></div>
     <div id="communitySentinel"><p id="communityStatus" role="status" aria-live="polite"></p><button id="communityMoreButton" hidden onclick="action(()=>loadCommunity(false),this)">Load more moments</button></div>

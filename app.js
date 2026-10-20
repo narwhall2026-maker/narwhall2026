@@ -92,7 +92,7 @@ async function handlePhotoSelect(event) {
     const image=document.createElement("img");image.src=selectedPhotoUrl;image.alt="Photo preview";$("photoPreview").replaceChildren(image);updateCapturePreview();
   } finally {if(generation===photoSelection) $("pinButton").disabled=!selectedPhoto;}
 }
-function openCapture(scope=currentWall) { closeWallSnake();closeWallBounce(); action(async()=>{await requireUser();
+function openCapture(scope=currentWall) { closeWallSnake();closeWallBounce(); action(async()=>{await requireUser();if(scope==="community")await requireCommunityAccess();
   if(!["main","private","community"].includes(scope))return;
   if(captureScope!==scope){photoSelection++;selectedPhoto=null;if(selectedPhotoUrl)URL.revokeObjectURL(selectedPhotoUrl);selectedPhotoUrl=null;$("momentPhoto").value="";$("momentCaption").value="";}
   captureScope=scope;$("captureTitle").textContent=captureScope==="community"?"Post to Community 🌍":captureScope==="private"?"A locked-wall moment 🔒":"Capture a moment";$("captureShare").hidden=captureScope!=="main";$("shareFriend").value="";$("capturePanel").classList.add("open");document.body.classList.add("capture-open");updateVisibleHeight();updateCapturePreview();if(selectedPhoto)$("momentCaption").focus();else $("choosePhotoButton").focus();updateWordCount();if(captureScope==="main")await loadShareFriends();}); }
@@ -111,7 +111,7 @@ async function photoUrl(key) {
 async function saveMoment() {
   if(saving) return; saving=true;
   try {await action(async()=>{
-    const user=await requireUser();const scope=captureScope;const friend=scope==="main"?$("shareFriend").value:"";const caption=$("momentCaption").value.trim();
+    const user=await requireUser();const scope=captureScope;if(scope==="community")await requireCommunityAccess();const friend=scope==="main"?$("shareFriend").value:"";const caption=$("momentCaption").value.trim();
     if(!selectedPhoto) throw new Error("Add a photo first 🐋");
     if(!caption || Array.from(caption).length>15) throw new Error("Add a caption of 1–15 characters.");
     const upload=await (await mediaRequest("/upload",{method:"PUT",body:selectedPhoto,headers:{"Content-Type":"image/jpeg"}})).json();
@@ -379,7 +379,7 @@ function updateCapturePreview() {
   $("retakeButton").disabled=saving;
   $("pinButton").disabled=!hasPhoto || saving;
   $("pinButton").textContent=captureScope==="community"?"Post publicly":"Pin";
-  $("captureHint").textContent=captureScope==="community"?"Everyone logged in can see this photo and your username.":captureScope==="private"?"This moment goes on your locked wall 🔒":"Pick a photo, add a little caption, then pin it.";
+  $("captureHint").textContent=captureScope==="community"?"Members who unlock Community can see this photo and your username.":captureScope==="private"?"This moment goes on your locked wall 🔒":"Pick a photo, add a little caption, then pin it.";
   if(!hasPhoto){
     const button=document.createElement("button");button.id="choosePhotoButton";button.className="choose-photo";button.textContent="📷 Choose a photo";button.onclick=chooseCapturePhoto;
     $("photoPreview").replaceChildren(button);
@@ -426,6 +426,7 @@ async function saveWallColour() {
 
 
 function clearCommunity() {
+  $("communityUnlock").hidden=true;$("communityAudienceControls").hidden=true;$("communityCaptureButton").hidden=true;
   communityGeneration++;communityLoading=false;communityCursor=null;communityHasMore=true;communitySeen.clear();
   clearImages($("communityWall"));$("communityWall").replaceChildren();$("communityMoreButton").hidden=true;$("communityStatus").textContent="";
 }
@@ -444,7 +445,11 @@ async function loadCommunity(reset=true) {
   try {
     const session=check(await supabaseClient.auth.getSession()).session;
     if(generation!==communityGeneration)return;
-    if(!session){communityHasMore=false;empty($("communityWall"),"Log in to explore and post to the Community wall 🌍");$("communityStatus").textContent="";return;}
+    if(!session){showCommunityUnlock(0,false);communityHasMore=false;$("communityStatus").textContent="";return;}
+    const access=check(await supabaseClient.rpc("community_access_status"));
+    if(generation!==communityGeneration)return;
+    if(!access.unlocked){showCommunityUnlock(access.photo_count,true);communityHasMore=false;$("communityStatus").textContent="";return;}
+    $("communityUnlock").hidden=true;$("communityAudienceControls").hidden=false;$("communityCaptureButton").hidden=false;
     let friendIds=null;
     if(communityAudience==="friends"){
       const {user,rows}=await friendships();
@@ -750,3 +755,16 @@ document.addEventListener("DOMContentLoaded",()=>{
   document.addEventListener("keyup",event=>{if(["ArrowLeft","a"].includes(event.key))bounceKeys.delete("left");if(["ArrowRight","d"].includes(event.key))bounceKeys.delete("right");});
   document.addEventListener("visibilitychange",()=>{if(document.hidden)pauseWallBounce();});window.addEventListener("blur",pauseWallBounce);
 });
+
+
+function showCommunityUnlock(count,loggedIn){
+  $("communityUnlock").hidden=false;$("communityAudienceControls").hidden=true;$("communityCaptureButton").hidden=true;
+  $("communityUnlockProgress").value=count;
+  $("communityUnlockHint").textContent=loggedIn?count+" of 5 photos saved on My moments. Add "+(5-count)+" more to unlock Community. Older photos in Memories count too; locked-wall photos don’t.":"Log in, then add 5 photos to My moments to unlock Community.";
+  $("communityUnlockAction").textContent=loggedIn?"Add photos to My moments":"Log in to get started";
+}
+async function requireCommunityAccess(){
+  const access=check(await supabaseClient.rpc("community_access_status"));
+  if(!access.unlocked)throw new Error("Add 5 photos to My moments to unlock Community ("+access.photo_count+"/5).");
+}
+function goUnlockCommunity(){action(async()=>{const session=check(await supabaseClient.auth.getSession()).session;if(!session){showScreen("login");return;}setWall("main");showScreen("wall");});}

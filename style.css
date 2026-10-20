@@ -376,3 +376,10 @@ body.capture-open {overflow:hidden;}
 #wallBounce button:focus-visible,#bounceCanvas:focus-visible {outline:3px solid #e6d0ff;outline-offset:-3px;}
 
 #snakeCanvas,#bounceCanvas {object-fit:contain;}
+
+.community-unlock {margin:20px 0;padding:24px 18px;border:1px solid #6c5b86;border-radius:22px;background:linear-gradient(140deg,#242039,#121923);text-align:center;}
+.community-unlock h3 {font-size:21px;margin:0 0 12px;}
+.community-unlock p {color:#d2c8de;font-size:14px;line-height:1.7;}
+.community-unlock progress {display:block;width:100%;max-width:300px;height:14px;margin:20px auto;accent-color:#c5adee;}
+.community-unlock button {min-height:48px;padding:12px 18px;background:#eee3d2;color:#292331;border:0;border-radius:14px;font:inherit;font-weight:600;cursor:pointer;}
+#communityAudienceControls[hidden],#communityUnlock[hidden],#communityCaptureButton[hidden] {display:none;}
