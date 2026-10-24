@@ -11,7 +11,7 @@ let wallColours={main:"dark",private:"dark"};
 let wallStyles={main:{background:"plain",frame:"classic"},private:{background:"plain",frame:"classic"}};
 const WALL_COLOURS={dark:"#13161d",cream:"#eee3cf",blush:"#e7c4cc",lavender:"#d4c9eb",sky:"#c4deed",sage:"#cadbc5"};
 let communityAudience="everyone";
-let currentScreen="wall", communityGeneration=0, communityLoading=false, communityCursor=null, communityHasMore=true;
+let currentScreen="home", communityGeneration=0, communityLoading=false, communityCursor=null, communityHasMore=true;
 const communitySeen=new Set();
 const COMMUNITY_PAGE=20;
 const imageUrls = new Set();
@@ -40,6 +40,8 @@ function clearPeek() {
   clearImages($("peekContent"));$("peekContent").replaceChildren();delete $("peekContent").dataset.signature;
 }
 function showScreen(screen) {
+  if(screen!=="home")stopHomeCamera();
+  if($("capturePanel").classList.contains("open"))closeCapture(false);
   closeWallSnake();closeWallBounce();
   clearAdminReview();
   if(currentScreen==="community" && screen!=="community")clearCommunity();
@@ -50,11 +52,13 @@ function showScreen(screen) {
   $("wallBrowseControls").hidden=screen!=="wall";
   $("privateControls").hidden=screen!=="wall" || currentWall!=="private";
   $("moreMemoriesButton").hidden=true;
-  ["wall","adminScreen","communityScreen","friendsScreen","profileScreen","peekScreen","signupScreen","loginScreen","resetScreen"].forEach(id=>{if($(id)) $(id).style.display="none";});
+  ["homeScreen","wall","adminScreen","communityScreen","friendsScreen","profileScreen","peekScreen","signupScreen","loginScreen","resetScreen"].forEach(id=>{if($(id)) $(id).style.display="none";});
   const target=screen==="wall"?"wall":screen+"Screen"; if($(target)) $(target).style.display="block";
   $("intro").hidden=screen!=="wall"; $("captureButton").hidden=screen!=="wall";
   document.querySelectorAll("[data-screen]").forEach(b=>b.classList.toggle("active",b.dataset.screen===screen));
   $("communityButton").setAttribute("aria-pressed",screen==="community");
+  $("cameraHomeButton").hidden=screen==="home";
+  if(screen==="home")resumeHomeCamera();
   if(screen==="wall") action(async()=>{await loadMoments();if(currentWall==="private")await loadPrivateAccess();});
   if(screen==="friends") action(async()=>{await Promise.all([loadFriendRequests(),loadFriends(),loadSharedMomentRequests(),loadPrivateInvites()]);});
   if(screen==="profile") action(loadProfile);
@@ -92,11 +96,15 @@ async function handlePhotoSelect(event) {
     const image=document.createElement("img");image.src=selectedPhotoUrl;image.alt="Photo preview";$("photoPreview").replaceChildren(image);updateCapturePreview();
   } finally {if(generation===photoSelection) $("pinButton").disabled=!selectedPhoto;}
 }
-function openCapture(scope=currentWall) { closeWallSnake();closeWallBounce(); action(async()=>{await requireUser();if(scope==="community")await requireCommunityAccess();
+function openCapture(scope=currentWall) { closeWallSnake();closeWallBounce(); return action(async()=>{await requireUser();if(scope==="community")await requireCommunityAccess();
   if(!["main","private","community"].includes(scope))return;
   if(captureScope!==scope){photoSelection++;selectedPhoto=null;if(selectedPhotoUrl)URL.revokeObjectURL(selectedPhotoUrl);selectedPhotoUrl=null;$("momentPhoto").value="";$("momentCaption").value="";}
-  captureScope=scope;$("captureTitle").textContent=captureScope==="community"?"Post to Community 🌍":captureScope==="private"?"A locked-wall moment 🔒":"Capture a moment";$("captureShare").hidden=captureScope!=="main";$("shareFriend").value="";$("capturePanel").classList.add("open");document.body.classList.add("capture-open");updateVisibleHeight();updateCapturePreview();if(selectedPhoto)$("momentCaption").focus();else $("choosePhotoButton").focus();updateWordCount();if(captureScope==="main")await loadShareFriends();}); }
-function closeCapture() { document.body.classList.remove("capture-open");$("capturePanel").classList.remove("open");(captureScope==="community"?$("communityCaptureButton"):$("captureButton")).focus(); }
+  stopHomeCamera();homeCaptureOrigin=false;captureScope=scope;$("captureTitle").textContent=captureScope==="community"?"Post to Community 🌍":captureScope==="private"?"A locked-wall moment 🔒":"Capture a moment";$("captureShare").hidden=captureScope!=="main";$("shareFriend").value="";$("capturePanel").classList.add("open");document.body.classList.add("capture-open");updateVisibleHeight();updateCapturePreview();if(selectedPhoto)$("momentCaption").focus();else $("choosePhotoButton").focus();updateWordCount();if(captureScope==="main")await loadShareFriends();return true;}); }
+function closeCapture(resume=true) {
+  const wasOpen=$("capturePanel").classList.contains("open");
+  document.body.classList.remove("capture-open");$("capturePanel").classList.remove("open");
+  if(wasOpen){(currentScreen==="home"?$("homeShutter"):captureScope==="community"?$("communityCaptureButton"):$("captureButton")).focus();if(resume && currentScreen==="home")resumeHomeCamera();}
+}
 async function mediaRequest(path, options={}) {
   const session=check(await supabaseClient.auth.getSession()).session;
   if(!session) throw new Error("Please log in first.");
@@ -200,11 +208,11 @@ async function signup() {
   validateUsername(username);if(!email || password.length<8)throw new Error("Enter your email and a password of at least 8 characters.");
   const data=check(await supabaseClient.auth.signUp({email,password,options:{data:{username},emailRedirectTo:location.origin}}));
   $("signupPassword").value="";
-  if(data.session){showScreen("wall");notice("Account created 🐋");}else{showScreen("login");notice("Check your email to confirm your account, then log in.");}
+  if(data.session){showScreen("home");notice("Account created 🐋");}else{showScreen("login");notice("Check your email to confirm your account, then log in.");}
 }
 async function login() {
   const email=$("loginEmail").value.trim(),password=$("loginPassword").value;if(!email||!password)throw new Error("Enter your email and password.");
-  check(await supabaseClient.auth.signInWithPassword({email,password}));$("loginPassword").value="";showScreen("wall");notice("Welcome back 🐋");
+  check(await supabaseClient.auth.signInWithPassword({email,password}));$("loginPassword").value="";showScreen("home");notice("Welcome back 🐋");
 }
 async function logout() {clearAdminReview();$("adminAreaButton").hidden=true;clearCommunity();wallStyles={main:{background:"plain",frame:"classic"},private:{background:"plain",frame:"classic"}};wallColours={main:"dark",private:"dark"};wallNames={main:"My moments",private:"Locked wall"};currentWall="main";memoryView=false;updateMemoryControls();updateWallControls();clearPeek();check(await supabaseClient.auth.signOut());wallGeneration++;clearImages($("wall"));clearImages($("peekContent"));empty($("wall"),"Log in to see your moments 🐋");showScreen("profile");notice("Logged out.");}
 async function resetPassword() {const email=$("loginEmail").value.trim();if(!email)throw new Error("Enter your email first.");check(await supabaseClient.auth.resetPasswordForEmail(email,{redirectTo:location.origin}));notice("Check your email for a password reset link.");}
@@ -270,7 +278,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   if("IntersectionObserver" in window){const observer=new IntersectionObserver(entries=>{if(entries.some(e=>e.isIntersecting) && currentScreen==="community" && communityHasMore && !communityLoading)action(()=>loadCommunity(false));},{rootMargin:"350px"});observer.observe($("communitySentinel"));}
   window.addEventListener("resize",()=>{updateVisibleHeight();requestAnimationFrame(()=>{fitWallCards($("wall"));fitWallCards($("peekContent"));});});
   window.visualViewport?.addEventListener("resize",updateVisibleHeight);
-  updateVisibleHeight();updateMemoryControls();updateWallControls();action(async()=>{await loadProfile();await loadMoments();});
+  updateVisibleHeight();updateMemoryControls();updateWallControls();showScreen("home");action(loadProfile);
 });
 function updateWallControls() {
   applyWallColour($("wall"),wallColours[currentWall],wallStyles[currentWall]);$("wallColour").value=wallColours[currentWall];$("wallBackground").value=wallStyles[currentWall].background;$("wallFrame").value=wallStyles[currentWall].frame;
@@ -370,6 +378,10 @@ function moveMemoryWeek(direction){const next=new Date(memoryWeek);next.setDate(
 
 function chooseCapturePhoto() {
   if(saving)return;
+  if(currentScreen==="home" && homeCaptureOrigin){
+    photoSelection++;selectedPhoto=null;if(selectedPhotoUrl)URL.revokeObjectURL(selectedPhotoUrl);selectedPhotoUrl=null;homeCaptureOrigin=false;
+    $("momentPhoto").value="";$("photoPreview").replaceChildren();updateCapturePreview();closeCapture();return;
+  }
   $("momentPhoto").value="";$("momentPhoto").click();
 }
 function updateCapturePreview() {
@@ -790,4 +802,70 @@ document.addEventListener("DOMContentLoaded",()=>{
   supabaseClient?.auth.onAuthStateChange(event=>{if(event==="SIGNED_IN"){activityLastAttempt=0;setTimeout(activity,0);}});
   setInterval(()=>void recordAccountActivity(),120000);
   void recordAccountActivity();
+});
+
+
+
+// Camera-first home: local preview only, snapshots enter the existing review-and-pin flow.
+let homeCameraStream=null,homeCameraGeneration=0,homeCameraWanted=false,homeCameraFacing="environment",homeCameraOpening=false,homeCaptureOrigin=false;
+function stopHomeCamera(){
+  homeCameraGeneration++;homeCameraOpening=false;
+  if(homeCameraStream)homeCameraStream.getTracks().forEach(track=>track.stop());
+  homeCameraStream=null;const video=$("homeCameraVideo");video.srcObject=null;video.hidden=true;
+  $("homeCameraPlaceholder").hidden=false;$("homeCameraLive").hidden=true;$("homeFlipCamera").disabled=true;$("homeEnableCamera").disabled=false;
+}
+async function startHomeCamera(){
+  if(currentScreen!=="home" || document.hidden || homeCameraOpening || $("capturePanel").classList.contains("open"))return;
+  if(!navigator.mediaDevices?.getUserMedia){$("homeCameraStatus").textContent="Live camera isn’t available in this browser. You can still choose a photo from Gallery.";return;}
+  stopHomeCamera();const generation=homeCameraGeneration;homeCameraOpening=true;
+  $("homeEnableCamera").disabled=true;$("homeCameraStatus").textContent="Opening your camera…";
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:homeCameraFacing},width:{ideal:1600},height:{ideal:1600}}});
+    if(generation!==homeCameraGeneration || currentScreen!=="home" || document.hidden){stream.getTracks().forEach(track=>track.stop());return;}
+    homeCameraStream=stream;homeCameraWanted=true;
+    const video=$("homeCameraVideo");video.srcObject=stream;
+    const facing=stream.getVideoTracks()[0]?.getSettings?.().facingMode||homeCameraFacing;
+    video.classList.toggle("selfie",facing==="user");video.hidden=false;await video.play();
+    if(generation!==homeCameraGeneration)return;
+    $("homeCameraPlaceholder").hidden=true;$("homeCameraLive").hidden=false;$("homeFlipCamera").disabled=false;
+    $("homeCameraStatus").textContent="Ready when you are. Your photo won’t post until you tap Pin.";
+    stream.getVideoTracks()[0]?.addEventListener("ended",()=>{if(generation===homeCameraGeneration){stopHomeCamera();$("homeCameraStatus").textContent="Camera stopped. Tap Enable camera to start again, or use Gallery.";}},{once:true});
+  }catch(error){
+    if(generation!==homeCameraGeneration)return;stopHomeCamera();
+    $("homeCameraStatus").textContent=error.name==="NotAllowedError"?"Camera access wasn’t allowed. Enable it in your browser’s site settings, or choose a photo from Gallery.":error.name==="NotFoundError"?"No camera found. Choose a photo from Gallery instead.":"Couldn’t start the camera. Try Enable camera again, or use Gallery.";
+  }finally{if(generation===homeCameraGeneration){homeCameraOpening=false;$("homeEnableCamera").disabled=false;}}
+}
+async function resumeHomeCamera(){
+  if(currentScreen!=="home" || document.hidden || homeCameraStream || homeCameraOpening || $("capturePanel").classList.contains("open"))return;
+  if(homeCameraWanted){void startHomeCamera();return;}
+  try{const permission=await navigator.permissions?.query({name:"camera"});if(permission?.state==="granted" && currentScreen==="home")void startHomeCamera();}catch{/* First visit and unsupported browsers use the explicit Enable camera button. */}
+}
+async function flipHomeCamera(){
+  if(!homeCameraStream || homeCameraOpening)return;
+  homeCameraFacing=homeCameraFacing==="environment"?"user":"environment";await startHomeCamera();
+}
+async function takeHomePhoto(){
+  if(!homeCameraStream){await startHomeCamera();return;}
+  await requireUser();const generation=homeCameraGeneration,video=$("homeCameraVideo");
+  if(!video.videoWidth || !video.videoHeight)throw new Error("The camera is still getting ready. Try again in a moment.");
+  const frame=$("homeViewfinder").getBoundingClientRect(),ratio=frame.width/frame.height;
+  const width=Math.min(video.videoWidth,video.videoHeight*ratio),height=width/ratio;
+  const scale=Math.min(1,1600/Math.max(width,height));
+  const canvas=document.createElement("canvas");canvas.width=Math.max(1,Math.round(width*scale));canvas.height=Math.max(1,Math.round(height*scale));
+  const ctx=canvas.getContext("2d");if(!ctx)throw new Error("Couldn’t capture this photo. Try Gallery instead.");
+  if(video.classList.contains("selfie")){ctx.translate(canvas.width,0);ctx.scale(-1,1);}
+  ctx.drawImage(video,(video.videoWidth-width)/2,(video.videoHeight-height)/2,width,height,0,0,canvas.width,canvas.height);
+  const blob=await new Promise(resolve=>canvas.toBlob(resolve,"image/jpeg",0.9));
+  if(generation!==homeCameraGeneration || currentScreen!=="home")return;
+  if(!blob)throw new Error("Couldn’t capture this photo. Try again.");
+  if(await openCapture("main")){await handlePhotoSelect({target:{files:[blob]}});homeCaptureOrigin=true;}
+}
+async function homeGallerySelected(event){
+  const file=event.target.files?.[0];event.target.value="";if(!file)return;
+  if(await openCapture("main"))await handlePhotoSelect({target:{files:[file]}});
+}
+document.addEventListener("DOMContentLoaded",()=>{
+  $("homeGalleryInput").addEventListener("change",event=>action(()=>homeGallerySelected(event)));
+  document.addEventListener("visibilitychange",()=>{if(document.hidden)stopHomeCamera();else resumeHomeCamera();});
+  window.addEventListener("pagehide",stopHomeCamera);window.addEventListener("pageshow",()=>resumeHomeCamera());
 });

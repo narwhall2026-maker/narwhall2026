@@ -6,19 +6,37 @@
   <title>Narwhall 🐋</title>
   <link rel="stylesheet" href="style.css">
 </head>
-<body data-screen="wall">
+<body data-screen="home">
   <main class="app">
     <header>
       <div class="brand-area"><div class="logo">🐋 Narwhall</div><button id="communityButton" class="community-link" data-screen="community" onclick="showScreen('community')" aria-pressed="false">🌍 Community wall</button></div>
+      <button id="cameraHomeButton" class="camera-home-link" type="button" onclick="showScreen('home')" hidden>📷 Camera</button>
       <button id="profileButton" class="profile-button" aria-label="Profile">👤</button>
-    <section id="intro" class="intro">
+    <section id="intro" class="intro" hidden>
       <aside class="moments-sticker" aria-label="My moments are worth capturing"><span>my moments</span><span>are worth capturing</span></aside>
     </section>
     </header>
 
 
 
-    <section id="wallControls">
+    <section id="homeScreen" class="camera-home" aria-label="Capture a Narwhall moment">
+      <div class="camera-home-heading"><div><p>MAKE A LITTLE MEMORY</p><h1>Worth capturing.</h1></div><button type="button" class="home-wall-link" onclick="showScreen('wall')">▧ My wall</button></div>
+      <div id="homeViewfinder" class="home-viewfinder">
+        <video id="homeCameraVideo" autoplay playsinline muted hidden aria-label="Your camera preview"></video>
+        <div id="homeCameraPlaceholder" class="home-camera-placeholder"><span aria-hidden="true">✧</span><h2>Your next moment.</h2><p>Take a photo or choose one you love.</p><button id="homeEnableCamera" type="button" onclick="startHomeCamera()">Enable camera</button></div>
+        <span class="camera-corner corner-tl" aria-hidden="true"></span><span class="camera-corner corner-tr" aria-hidden="true"></span><span class="camera-corner corner-bl" aria-hidden="true"></span><span class="camera-corner corner-br" aria-hidden="true"></span>
+        <div class="home-camera-live" id="homeCameraLive" hidden><span aria-hidden="true"></span> CAMERA PREVIEW</div>
+      </div>
+      <p id="homeCameraStatus" class="home-camera-status" role="status" aria-live="polite">Your camera stays on your device. Review your photo before posting.</p>
+      <div class="home-camera-actions">
+        <button id="homeGalleryButton" type="button" class="camera-side-action" onclick="document.getElementById('homeGalleryInput').click()"><span aria-hidden="true">▧</span><span>Gallery</span></button>
+        <button id="homeShutter" type="button" class="home-shutter" onclick="action(takeHomePhoto,this)" aria-label="Take a photo"><span aria-hidden="true"></span></button>
+        <button id="homeFlipCamera" type="button" class="camera-side-action" onclick="flipHomeCamera()" disabled><span aria-hidden="true">↻</span><span>Flip</span></button>
+      </div>
+      <input id="homeGalleryInput" type="file" accept="image/*" hidden aria-label="Choose a photo from your gallery">
+      <p class="home-camera-footnote">Capture it. Caption it. Pin it. 🐋</p>
+    </section>
+    <section id="wallControls" hidden>
       <div class="wall-tabs"><button id="mainWallTab" onclick="setWall('main')" aria-pressed="true">My moments</button><button id="privateWallTab" onclick="setWall('private')" aria-pressed="false">🔒 Locked wall</button></div>
 
       <div class="wall-tools">
@@ -38,8 +56,8 @@
       </div>
 
     </section>
-    <div id="photoWallFrame">
-      <section id="wall">
+    <div id="photoWallFrame" hidden>
+      <section id="wall" style="display:none;">
         <div class="wall-empty">Log in to see your moments 🐋</div>
       </section>
       <details id="wallGameMenu"><summary>🎮 Play a game</summary><button id="wallSnakeButton" type="button" onclick="openWallSnake()">🐍 Snake</button><button type="button" onclick="openWallBounce()">🐋 Bubble Bounce</button></details>
@@ -65,7 +83,7 @@
         <button id="privateInviteButton">Invite for 24 hours</button>
         <div id="privateAccessList"></div>
       </div>
-    <section id="wallBrowseControls">
+    <section id="wallBrowseControls" hidden>
       <div class="wall-tabs"><button id="recentTab" onclick="setMemoryView(false)" aria-pressed="true">Latest 10</button><button id="memoriesTab" onclick="setMemoryView(true)" aria-pressed="false">📚 Memories</button></div>
       <p id="wallViewHint" class="wall-view-hint">Your newest 10 moments. Older photos stay in Memories.</p>
     </section>
@@ -128,9 +146,7 @@
     <div id="peekContent"></div>
   </div>
 
-  <nav>
-    <button data-screen="wall" onclick="showScreen('wall')">🏠 <span>Wall</span></button>
-  </nav>
+
 
   <section id="profileScreen" style="display: none;">
     <h2>Profile</h2>
@@ -190,6 +206,7 @@
   <script src="app.js"></script>
 </body>
 </html>
+
 
 
 
