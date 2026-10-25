@@ -7,21 +7,18 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body data-screen="home">
+  <svg xmlns="http://www.w3.org/2000/svg" class="icon-library" aria-hidden="true"><defs><symbol id="icon-wall" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m3 15 5-5 5 5 3-3 5 5"/></symbol><symbol id="icon-friends" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 5a3 3 0 0 1 0 6m3 10v-3a6 6 0 0 0-2-4"/></symbol><symbol id="icon-camera" viewBox="0 0 24 24"><path d="M8 5 10 3h4l2 2h4a2 2 0 0 1 2 2v12H2V7a2 2 0 0 1 2-2Z"/><circle cx="12" cy="12" r="4"/></symbol><symbol id="icon-community" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a18 18 0 0 1 0 18 18 18 0 0 1 0-18Z"/></symbol><symbol id="icon-games" viewBox="0 0 24 24"><path d="M7 7h10a4 4 0 0 1 4 3l1 7a2 2 0 0 1-3 2l-4-3H9l-4 3a2 2 0 0 1-3-2l1-7a4 4 0 0 1 4-3Z"/><path d="M6 11v4m-2-2h4m8-2h.01M18 14h.01"/></symbol><symbol id="icon-bell" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></symbol><symbol id="icon-profile" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 22v-2a8 8 0 0 1 16 0v2"/></symbol></defs></svg>
   <main class="app">
-    <header>
-      <div class="brand-area"><div class="logo">🐋 Narwhall</div><button id="communityButton" class="community-link" data-screen="community" onclick="showScreen('community')" aria-pressed="false">🌍 Community wall</button></div>
-      <button id="cameraHomeButton" class="camera-home-link" type="button" onclick="showScreen('home')" hidden>📷 Camera</button>
-      <button id="inboxButton" class="camera-home-link inbox-button" type="button" aria-label="Notifications" onclick="showScreen('inbox')">🔔<span id="inboxBadge" hidden>0</span></button>
-      <button id="profileButton" class="profile-button" aria-label="Profile">👤</button>
-    <section id="intro" class="intro" hidden>
-      <aside class="moments-sticker" aria-label="My moments are worth capturing"><span>my moments</span><span>are worth capturing</span></aside>
-    </section>
+    <header class="app-header">
+      <div class="brand-area"><div class="logo">🐋 Narwhall</div></div>
+      <div class="header-actions"><button id="inboxButton" class="header-icon inbox-button" type="button" aria-label="Inbox" onclick="showScreen('inbox')"><svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-bell"/></svg><span id="inboxBadge" hidden>0</span></button><button id="profileButton" class="header-icon profile-button" aria-label="Profile"><svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-profile"/></svg></button></div>
+      <section id="intro" class="intro" hidden><aside class="moments-sticker" aria-label="My moments are worth capturing"><span>my moments</span><span>are worth capturing</span></aside></section>
     </header>
 
 
 
     <section id="homeScreen" class="camera-home" aria-label="Capture a Narwhall moment">
-      <div class="camera-home-heading"><div><p>MAKE A LITTLE MEMORY</p><h1>Worth capturing.</h1></div><button type="button" class="home-wall-link" onclick="showScreen('wall')">▧ My wall</button></div>
+      <div class="camera-home-heading"><div><p>YOUR EVERYDAY, WORTH KEEPING</p><h1>Make a little memory.</h1></div></div>
       <div id="homeViewfinder" class="home-viewfinder">
         <video id="homeCameraVideo" autoplay playsinline muted hidden aria-label="Your camera preview"></video>
         <canvas id="homeEffectsCanvas" hidden aria-hidden="true"></canvas>
@@ -30,6 +27,12 @@
         <div class="home-camera-live" id="homeCameraLive" hidden><span aria-hidden="true"></span> CAMERA PREVIEW</div>
       </div>
       <p id="homeCameraStatus" class="home-camera-status" role="status" aria-live="polite">Your camera stays on your device. Review your photo before posting.</p>
+      <div class="home-camera-actions">
+        <button id="homeGalleryButton" type="button" class="camera-side-action" onclick="document.getElementById('homeGalleryInput').click()"><span aria-hidden="true">▧</span><span>Gallery</span></button>
+        <button id="homeShutter" type="button" class="home-shutter" onclick="action(takeHomePhoto,this)" aria-label="Take a photo"><span aria-hidden="true"></span></button>
+        <button id="homeFlipCamera" type="button" class="camera-side-action" onclick="flipHomeCamera()" disabled><span aria-hidden="true">↻</span><span>Flip</span></button>
+      </div>
+      <details class="camera-effects"><summary>✧ Filters &amp; effects <span>Make it yours</span></summary>
       <div class="home-filter-controls" role="group" aria-label="Camera colour filter">
         <button type="button" data-camera-filter="original" aria-pressed="true" onclick="setHomeFilter('original')">Original</button>
         <button type="button" data-camera-filter="vintage" aria-pressed="false" onclick="setHomeFilter('vintage')">Vintage</button>
@@ -37,24 +40,20 @@
       </div>
       <div class="home-hat-control"><button id="homeNarwhalHat" type="button" aria-pressed="false" onclick="toggleHomeHat()">🐋 Narwhal hat</button><span>Face tracking stays on your device</span></div>
       <p id="homeEffectsStatus" role="status" aria-live="polite"></p>
-      <div class="home-camera-actions">
-        <button id="homeGalleryButton" type="button" class="camera-side-action" onclick="document.getElementById('homeGalleryInput').click()"><span aria-hidden="true">▧</span><span>Gallery</span></button>
-        <button id="homeShutter" type="button" class="home-shutter" onclick="action(takeHomePhoto,this)" aria-label="Take a photo"><span aria-hidden="true"></span></button>
-        <button id="homeFlipCamera" type="button" class="camera-side-action" onclick="flipHomeCamera()" disabled><span aria-hidden="true">↻</span><span>Flip</span></button>
-      </div>
+      </details>
       <input id="homeGalleryInput" type="file" accept="image/*" hidden aria-label="Choose a photo from your gallery">
-      <p class="home-camera-footnote">Capture it. Caption it. Pin it. 🐋</p><div class="home-help-links"><button type="button" onclick="showScreen('guide')">New here? Quick guide</button><button type="button" onclick="showScreen('games')">🎮 Games &amp; challenges</button></div>
+      <p class="home-camera-footnote">Capture it. Pin it. Keep it.</p>
     </section>
     <section id="wallControls" hidden>
       <div class="wall-tabs"><button id="mainWallTab" onclick="setWall('main')" aria-pressed="true">My moments</button><button id="privateWallTab" onclick="setWall('private')" aria-pressed="false">🔒 Locked wall</button></div>
 
       <div class="wall-tools">
-      <details id="personaliseWall" class="personalise-wall"><summary>🎨 Personalise wall</summary>
+      <details id="personaliseWall" class="personalise-wall"><summary>✧ Personalise wall <span>Style &amp; name</span></summary>
       <div class="wall-colour-control"><label for="wallColour">🎨 Wall colour</label><select id="wallColour"><option value="dark">Dark</option><option value="cream">Cream</option><option value="blush">Blush pink</option><option value="lavender">Lavender</option><option value="sky">Sky blue</option><option value="sage">Sage green</option></select></div>
 <div class="wall-colour-control"><label for="wallBackground">Background</label><select id="wallBackground"><option value="plain">Plain colour</option><option value="cork">Corkboard</option><option value="paper">Cosmic night</option><option value="dots">Neon sunset</option></select></div>
 <div class="wall-colour-control"><label for="wallFrame">Outer frame</label><select id="wallFrame"><option value="classic">Classic dark</option><option value="cream">Liquid chrome</option><option value="wood">Wood</option><option value="pastel">Holographic</option><option value="neon">Neon arcade</option></select></div>
 <button id="saveWallStyleButton" onclick="action(saveWallColour,this)">Save wall style</button><p>Saved for this wall. Friends see it when they peek.</p><div class="wall-rename-setting"><button id="renameWallButton" class="rename-wall" onclick="action(renameWall,this)">✎ Rename this wall</button></div></details>
-      <button id="friendsWallButton" class="friends-wall-button" data-screen="friends" onclick="showScreen('friends')">👥 Friends</button>
+
       </div>
 
       <div id="memoryControls" hidden>
@@ -112,6 +111,8 @@
     <div id="communitySentinel"><p id="communityStatus" role="status" aria-live="polite"></p><button id="communityMoreButton" hidden onclick="action(()=>loadCommunity(false),this)">Load more moments</button></div>
   </section>
 
+  <nav id="primaryNavigation" aria-label="Main navigation"><button id="wallNavButton" type="button" data-screen="wall" onclick="showScreen('wall')"><svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-wall"/></svg><span>My wall</span></button><button id="friendsNavButton" type="button" data-screen="friends" onclick="showScreen('friends')"><svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-friends"/></svg><span>Friends</span></button><button id="cameraHomeButton" type="button" data-screen="home" onclick="showScreen('home')" aria-current="page"><svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-camera"/></svg><span>Camera</span></button><button id="communityButton" type="button" data-screen="community" onclick="showScreen('community')"><svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-community"/></svg><span>Community</span></button><button id="gamesNavButton" type="button" data-screen="games" onclick="showScreen('games')"><svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-games"/></svg><span>Games</span></button></nav>
+
   <div id="appNotice" role="status" aria-live="polite" hidden></div>
 
   <div id="capturePanel" class="capture-panel">
@@ -138,7 +139,7 @@
   </div>
 
   <section id="friendsScreen" style="display: none;">
-    <h2>Friends</h2>
+    <p class="feature-eyebrow">BETTER WITH YOUR PEOPLE</p><h2>Friends</h2>
     <button id="addFriendButton" onclick="addFriend()">➕ Add friend</button>
     <h3>Friend requests</h3>
     <div id="friendRequests"><p>No friend requests yet.</p></div>
@@ -159,7 +160,8 @@
 
 
   <section id="profileScreen" style="display: none;">
-    <h2>Profile</h2>
+    <p class="feature-eyebrow">YOUR SPACE</p><h2>Profile &amp; settings</h2>
+    <div class="settings-card"><h3>Your account</h3>
     <p id="accountStatus"></p>
     <p class="privacy-hint">Narwhall records your last activity and approximate device and browser details for account administration. These details are visible only to the site administrator.</p>
     <label for="username">Username</label>
@@ -171,10 +173,11 @@
     </div>
     <button id="adminAreaButton" hidden onclick="showScreen('admin')">🛡 Admin area</button>
     <button id="logoutButton" hidden>Log out</button>
-    <div class="account-links"><button type="button" onclick="showScreen('guide')">Quick guide</button><button type="button" onclick="showScreen('rules')">Privacy &amp; community rules</button><button type="button" onclick="showScreen('games')">Scores &amp; challenges</button></div>
+    </div>
+    <div class="account-links settings-card"><h3>Explore &amp; help</h3><button type="button" onclick="showScreen('guide')">Quick guide</button><button type="button" onclick="showScreen('rules')">Privacy &amp; community rules</button><button type="button" onclick="showScreen('games')">Scores &amp; challenges</button></div>
     <details class="account-settings"><summary>Permissions &amp; account controls</summary><label class="setting-check"><input id="cameraAutoStart" type="checkbox" onchange="setCameraAutoStart(this.checked)"> Open my camera automatically after permission is allowed</label><button type="button" onclick="stopCameraFromSettings()">Stop camera &amp; turn off automatic preview</button><p>To revoke camera permission fully, use your browser’s site settings for narwhall.app. Gallery access only includes photos you choose.</p><label class="setting-check"><input id="activityOptIn" type="checkbox" onchange="setActivityOptIn(this.checked)"> Share basic activity and device details for account administration</label><p>This setting applies on this browser. Turning it off stops new activity reports; previous account details remain in the admin record.</p></details>
     <details id="deleteAccountSettings" class="account-settings danger-zone" hidden><summary>Request account deletion</summary><p>Deletion has a minimum 30-day waiting period and needs an admin review of your account and photos. Your account and walls stay available during the wait. You can cancel until final deletion starts.</p><p>Once completed, your account, walls, friend links, scores and uploaded photos—including shared copies—are permanently removed. Copies saved outside Narwhall cannot be erased.</p><div id="deletionRequestStatus" role="status"></div><button id="cancelDeletionButton" type="button" hidden onclick="action(cancelMyDeletion,this)">Cancel deletion request</button><form id="deleteAccountForm"><label for="deleteEmail">Your account email</label><input id="deleteEmail" type="email" autocomplete="username" required><label for="deletePassword">Confirm your password</label><input id="deletePassword" type="password" autocomplete="current-password" required><label for="deleteConfirm">Type DELETE to request deletion</label><input id="deleteConfirm" type="text" autocomplete="off" pattern="DELETE" required><button id="deleteAccountButton" type="submit">Request deletion after 30 days &amp; admin review</button></form></details>
-    <details id="communityBlockSettings"><summary>Blocked Community accounts</summary><div id="communityBlockedList"></div></details>
+    <details id="communityBlockSettings" class="account-settings"><summary>Blocked Community accounts</summary><div id="communityBlockedList"></div></details>
   </section>
 
   <section id="adminScreen" style="display:none;">

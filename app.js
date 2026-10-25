@@ -45,6 +45,7 @@ function showScreen(screen) {
   closeWallSnake();closeWallBounce();
   clearAdminReview();
   if(currentScreen==="community" && screen!=="community")clearCommunity();
+  const screenChanged=currentScreen!==screen;
   currentScreen=screen;document.body.dataset.screen=screen;
   $("photoWallFrame").hidden=screen!=="wall";
   if(screen!=="peek") clearPeek();
@@ -57,7 +58,14 @@ function showScreen(screen) {
   $("intro").hidden=screen!=="wall"; $("captureButton").hidden=screen!=="wall";
   document.querySelectorAll("[data-screen]").forEach(b=>b.classList.toggle("active",b.dataset.screen===screen));
   $("communityButton").setAttribute("aria-pressed",screen==="community");
-  $("cameraHomeButton").hidden=screen==="home";
+  document.querySelectorAll('#primaryNavigation [data-screen]').forEach(button=>{
+    const selected=button.dataset.screen===screen || (screen==='peek' && button.dataset.screen==='friends');
+    button.classList.toggle('active',selected);
+    if(selected)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current');
+  });
+  $('profileButton').setAttribute('aria-pressed',['profile','admin','rules','login','signup','reset'].includes(screen));
+  $('inboxButton').setAttribute('aria-pressed',screen==='inbox');
+  if(screenChanged)window.scrollTo?.({top:0,behavior:'instant'});
   if(screen==="home")resumeHomeCamera();
   if(screen==="inbox")action(()=>loadNotifications(true));
   if(screen==="games")action(loadGameHub);

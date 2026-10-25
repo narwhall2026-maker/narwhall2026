@@ -477,3 +477,90 @@ header {gap:10px;}
 #deletionRequestStatus:not(:empty) {padding:12px;margin:12px 0;background:#211e30;border-radius:12px;border:1px solid #655476;}
 #deletionRequestStatus p {margin:4px 0;}
 #deleteAccountForm[hidden],#cancelDeletionButton[hidden],#deletionQueuePrevious[hidden],#deletionQueueNext[hidden] {display:none;}
+
+/* Narwhall app shell: one navigation system, consistent surfaces and controls. */
+:root {--app-bg:#101219;--app-surface:#1b1e28;--app-line:#323644;--app-muted:#a7a9ba;--app-accent:#bce8db;--app-ink:#f4f0e9;--dock-space:100px;}
+html,body {background:var(--app-bg);color:var(--app-ink);}
+body {padding-bottom:calc(var(--dock-space) + env(safe-area-inset-bottom,0px));}
+html {scroll-padding-bottom:calc(var(--dock-space) + env(safe-area-inset-bottom,0px));}
+.icon-library {position:absolute;width:0;height:0;overflow:hidden;pointer-events:none;}
+.app-icon {width:24px;height:24px;display:block;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;}
+.app {max-width:800px;padding:16px 20px 0;}
+.app-header {display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin:0 0 20px;padding:0 0 14px;border-bottom:1px solid #ffffff0c;}
+.app-header .brand-area {max-width:none;min-width:0;}
+.app-header .logo {font-size:32px;line-height:1.2;}
+.header-actions {display:flex;gap:8px;align-items:center;}
+.app-header .header-icon,#inboxButton {display:grid;place-items:center;position:relative;width:44px;height:44px;min-width:44px;min-height:44px;padding:10px;border:1px solid var(--app-line);border-radius:16px;background:var(--app-surface);color:#d8dce8;}
+.header-icon[aria-pressed="true"] {border-color:var(--app-accent);color:var(--app-accent);}
+.app-header .intro {position:static;flex-basis:100%;margin:0;max-width:none;display:flex;justify-content:flex-end;}
+.app-header .moments-sticker {margin:0 4px 0 0;transform:rotate(-5deg);font-size:14px;padding:8px 15px;}
+#primaryNavigation {position:fixed;left:50%;right:auto;bottom:0;transform:translateX(-50%);width:min(100%,800px);height:auto;min-height:80px;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;align-items:center;padding:9px 12px calc(9px + env(safe-area-inset-bottom,0px));border:1px solid #ffffff16;border-bottom:0;border-radius:26px 26px 0 0;background:#191c27f5;box-shadow:0 -8px 35px #0004;backdrop-filter:blur(18px);z-index:90;}
+#primaryNavigation button {display:flex;flex-direction:column;justify-content:center;align-items:center;gap:6px;width:100%;min-width:0;min-height:58px;padding:7px 2px;margin:0;border:0;border-radius:16px;background:transparent;color:#a5a9bc;font:inherit;font-size:10px;line-height:1.2;touch-action:manipulation;}
+#primaryNavigation button.active {color:var(--app-accent);background:#bce8db12;}
+#primaryNavigation #cameraHomeButton {min-height:60px;color:#132a26;background:var(--app-accent);box-shadow:0 3px 15px #bce8db14;}
+#primaryNavigation #cameraHomeButton.active {box-shadow:inset 0 0 0 2px #f0fff7;}
+#primaryNavigation button:focus-visible {outline:3px solid var(--app-accent);outline-offset:2px;}
+#primaryNavigation button:active {transform:scale(.96);}
+.camera-home {max-width:460px;}
+.camera-home-heading {margin:12px 0 18px;justify-content:center;text-align:center;}
+.camera-home-heading p {font-size:9px;letter-spacing:2.2px;color:var(--app-accent);}
+.camera-home-heading h1 {font-size:36px;color:var(--app-ink);}
+.home-viewfinder {min-height:200px;max-height:none;aspect-ratio:4/4.4;border-radius:28px;border-color:#434555;background:radial-gradient(ellipse at 75% 10%,#35414d,transparent 65%),radial-gradient(ellipse at 10% 100%,#234a46,transparent 65%),#171c29;box-shadow:0 15px 40px #0003;}
+.home-camera-placeholder>span {color:var(--app-accent);font-size:58px;}
+.home-camera-placeholder h2 {font-size:34px;}
+.home-camera-placeholder button {background:var(--app-accent);border-color:var(--app-accent);color:#152c27;}
+.home-camera-status {font-size:11px;min-height:0;margin:12px auto 4px;color:var(--app-muted);}
+.home-camera-actions {margin:10px auto 16px;}
+.home-shutter {width:74px;height:74px;border-color:var(--app-accent);}
+.home-shutter>span {background:var(--app-accent);}
+.camera-side-action {border:1px solid #ffffff0d;border-radius:20px;background:#ffffff03;min-height:64px;}
+.camera-side-action>span:first-child {font-size:25px;}
+.camera-effects {border:1px solid var(--app-line);border-radius:18px;background:var(--app-surface);padding:0 14px;}
+.camera-effects summary {min-height:48px;display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;font-size:13px;list-style:none;}
+.camera-effects summary::-webkit-details-marker {display:none;}
+.camera-effects summary span {color:var(--app-muted);font-size:10px;}
+.camera-effects summary::after {content:'+';font-size:20px;color:var(--app-accent);}
+.camera-effects[open] summary::after {content:'−';}
+.camera-effects[open] {padding-bottom:12px;}
+.home-filter-controls {margin-top:6px;}
+.home-filter-controls button[aria-pressed="true"],#homeNarwhalHat[aria-pressed="true"] {background:var(--app-accent);border-color:var(--app-accent);}
+.home-hat-control>span {max-width:140px;}
+.home-camera-footnote {font-size:18px;margin:16px 0;color:var(--app-muted);}
+#wallControls {position:relative;}
+.wall-tabs {background:#1b1e28;padding:5px;border:1px solid var(--app-line);border-radius:18px;gap:5px;margin:0 auto 12px;max-width:500px;}
+.wall-tabs button {flex:1;min-height:44px;padding:10px 12px;border:0;border-radius:13px;font-size:13px;color:#b8bbca;}
+.wall-tabs button[aria-pressed="true"] {background:var(--app-accent);color:#142b26;box-shadow:0 3px 10px #0002;}
+.wall-tools {display:block;max-width:500px;margin:0 auto 16px;}
+.wall-tools .personalise-wall {border:1px solid var(--app-line);border-radius:16px;background:var(--app-surface);}
+.wall-tools summary {justify-content:space-between;gap:10px;min-height:46px;padding:10px 14px;font-size:12px;}
+.wall-tools summary span {font-size:10px;color:var(--app-muted);}
+#wallBrowseControls {margin-top:16px;}
+.wall-view-hint {font-size:11px;color:var(--app-muted);}
+#privateControls {margin:16px auto;border-color:var(--app-line);background:var(--app-surface);border-radius:18px;}
+#communityScreen,#friendsScreen,#profileScreen,#peekScreen,#adminScreen,.feature-screen {width:100%;max-width:800px;padding:8px 20px 28px;margin:0 auto;}
+body:not([data-screen="home"]):not([data-screen="wall"]) .app {padding-bottom:0;}
+#communityScreen h2,#friendsScreen h2,#profileScreen h2,#peekScreen h2,#adminScreen h2,.feature-screen h2 {font-family:'Poppins',sans-serif;font-size:26px;font-weight:600;letter-spacing:-.7px;line-height:1.25;margin:8px 0 12px;}
+#communityScreen p,#friendsScreen>p,#profileScreen>p,.feature-screen>p {color:var(--app-muted);}
+.community-heading {align-items:center;gap:12px;}
+.community-heading p {font-size:12px;}
+.community-audience {justify-content:stretch;background:var(--app-surface);padding:5px;border-radius:18px;gap:5px;}
+.community-audience button {flex:1;min-height:44px;border:0;border-radius:13px;}
+.community-audience button[aria-pressed="true"] {background:var(--app-accent);color:#142b26;}
+.settings-card {padding:18px;margin:18px 0;background:var(--app-surface);border:1px solid var(--app-line);border-radius:20px;}
+.settings-card h3 {font-size:14px;margin:0 0 14px;color:var(--app-ink);}
+#profileScreen .settings-card>button,#profileScreen .settings-card>div>button {min-height:44px;margin:6px 4px 6px 0;}
+#profileScreen .account-links button {display:block;width:100%;text-align:left;margin:8px 0;min-height:48px;}
+.account-settings {border-color:var(--app-line);background:var(--app-surface);border-radius:20px;}
+.account-settings summary {font-weight:500;}
+#profileScreen .privacy-hint {font-size:11px;line-height:1.7;}
+#profileScreen .setting-check {display:flex;}
+#profileScreen .setting-check input {width:22px;margin:0;}
+#profileScreen .danger-zone {border-color:#704756;}
+#friendsScreen h3 {margin-top:26px;font-size:11px;color:var(--app-muted);}
+#addFriendButton,#communityCaptureButton {min-height:48px;border-radius:15px;background:var(--app-accent);border:0;color:#142b26;font-weight:600;padding:12px 18px;}
+#notificationList>div,#gameChallengeList>div,#gameLeaderboard>div,#friendRequests>div,#sharedMomentRequests>div,#friendsList>div {background:var(--app-surface);border-color:var(--app-line);border-radius:18px;}
+.screen-back {min-height:44px;margin-bottom:12px;}
+@media(min-width:850px){#primaryNavigation {bottom:16px;border:1px solid #ffffff16;border-radius:26px;width:600px;padding-bottom:9px;} .app {padding-top:26px;} .home-viewfinder {aspect-ratio:1/1;}}
+@media(max-width:600px){.app {padding:14px 14px 0;} .app-header {margin-bottom:16px;gap:8px;} .app-header .logo {font-size:30px;} .camera-home-heading h1 {font-size:32px;} #communityScreen,#friendsScreen,#profileScreen,#peekScreen,#adminScreen,.feature-screen {padding-left:14px;padding-right:14px;} #primaryNavigation {gap:2px;padding-left:6px;padding-right:6px;} .home-viewfinder {aspect-ratio:1/1;} }
+@media(max-width:360px){#primaryNavigation button {font-size:9px;} .camera-home-heading h1 {font-size:29px;} .home-camera-placeholder {padding:15px;} .home-camera-placeholder h2 {font-size:30px;} .home-filter-controls {gap:4px;} .home-filter-controls button {padding:10px 8px;}}
+@media(prefers-reduced-motion:no-preference){button {transition:background-color .16s,color .16s,transform .12s;} }
