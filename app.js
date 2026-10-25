@@ -881,7 +881,7 @@ function toggleHomeHat(){
   homeHatEnabled=!homeHatEnabled;$("homeNarwhalHat").setAttribute("aria-pressed",String(homeHatEnabled));
   homeHatPoses=[];homeHatSeenAt=0;
   if(!homeHatEnabled){stopHatTracker();$("homeEffectsStatus").textContent="";}
-  else if(!homeCameraStream)$("homeEffectsStatus").textContent="Enable the camera to try the narwhal hat. It works best with the selfie camera.";
+  else if(!homeCameraStream)ensureHatTracker();
   if(homeCameraStream)startHomeEffects();
 }
 function colourHomePixels(image,filter){
@@ -935,22 +935,22 @@ function failHomeHat(){
   $("homeEffectsStatus").textContent="Face tracking isn’t available right now. You can still use Original, Vintage or Black & white.";
 }
 function ensureHatTracker(){
-  if(homeHatTracker || !homeHatEnabled || !homeCameraStream)return;
+  if(homeHatTracker || !homeHatEnabled)return;
   if(typeof Worker==="undefined" || typeof createImageBitmap==="undefined"){failHomeHat();return;}
   $("homeEffectsStatus").textContent="Loading the narwhal hat… The first load may take a moment.";
   try{
-    const worker=new Worker("camera-face-worker.js",{type:"module"});
+    const worker=new Worker("camera-face-worker.js?v=2");
     const tracker={worker,ready:false,busy:false,last:0,sequence:0,timeout:null};homeHatTracker=tracker;
     tracker.timeout=setTimeout(()=>{if(homeHatTracker===tracker)failHomeHat();},25000);
     worker.onerror=()=>{if(homeHatTracker===tracker)failHomeHat();};
     worker.onmessage=event=>{
       if(homeHatTracker!==tracker)return;const result=event.data;
-      if(result.type==="ready"){clearTimeout(tracker.timeout);tracker.ready=true;$("homeEffectsStatus").textContent="Face the camera to wear your narwhal. Try Flip for a selfie.";}
+      if(result.type==="ready"){clearTimeout(tracker.timeout);tracker.ready=true;$("homeEffectsStatus").textContent=homeCameraStream?"Face the camera to wear your narwhal. Try Flip for a selfie.":"Narwhal hat is ready. Enable the camera and try Flip for a selfie.";}
       else if(result.type==="faces"){
         clearTimeout(tracker.frameTimeout);tracker.busy=false;homeHatPoses=result.faces;homeHatSeenAt=performance.now();
         const text=result.faces.length?"Narwhal hat is following your face. Ready for a photo!":"No face in view. Face the camera to try the hat.";
         if($("homeEffectsStatus").textContent!==text)$("homeEffectsStatus").textContent=text;
-      }else if(result.type==="error")failHomeHat();
+      }else if(result.type==="error"){console.warn("Narwhal tracker:",result.stage,result.message);failHomeHat();}
     };
   }catch{failHomeHat();}
 }
