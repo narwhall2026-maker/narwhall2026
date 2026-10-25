@@ -604,3 +604,28 @@ body:not([data-screen="home"]):not([data-screen="wall"]) .app {padding-bottom:0;
 #primaryNavigation button.active {color:var(--app-accent);}
 .wall-tabs button {color:#dac8e6;}
 .wall-tabs button[aria-pressed="true"] {color:#142b26;}
+/* Small actions and optional explanations keep the photos in charge. */
+#appNotice {top:auto;bottom:calc(100px + env(safe-area-inset-bottom,0px));width:max-content;max-width:min(90vw,420px);border-radius:22px;padding:12px 18px;font-size:12px;box-shadow:0 8px 30px #0005;}
+.feature-chips {display:flex;gap:8px;flex-wrap:wrap;margin:12px 0;}
+.feature-chips>span {display:inline-flex;align-items:center;min-height:34px;padding:7px 12px;border-radius:999px;background:#ffffff0c;border:1px solid #ffffff14;font-size:11px;color:#e1cfeb;}
+.inline-help {margin:10px 0;color:var(--app-muted);}
+.inline-help>summary {display:inline-flex;align-items:center;min-height:44px;padding:8px 12px;border:1px solid #ffffff20;border-radius:999px;cursor:pointer;font-size:11px;list-style:none;}
+.inline-help p {font-size:12px;line-height:1.7;max-width:500px;padding:8px 4px;}
+.friend-drawer {margin:12px 0;border-bottom:1px solid #ffffff14;padding-bottom:8px;}
+.friend-drawer>summary {display:flex;align-items:center;gap:10px;min-height:52px;padding:12px 14px;background:var(--app-surface);border:1px solid var(--app-line);border-radius:18px;cursor:pointer;font-size:13px;list-style:none;}
+.friend-drawer>summary::after {content:'+';margin-left:auto;color:var(--app-accent);font-size:21px;}
+.friend-drawer[open]>summary::after {content:'−';}
+#notificationList>.notification-card {display:grid;grid-template-columns:44px minmax(0,1fr);gap:12px;padding:16px 8px;background:transparent;border:0;border-bottom:1px solid #ffffff18;border-radius:0;margin:0;}
+.notification-avatar {display:grid;place-items:center;width:44px;height:44px;border-radius:16px;background:#ffffff10;font-size:21px;}
+.notification-body>strong {display:block;font-size:14px;font-weight:600;}
+.notification-label {display:block;font-size:11px;color:var(--app-muted);margin-top:3px;}
+.notification-actions {grid-column:2;display:flex;gap:7px;flex-wrap:wrap;}
+.feature-screen .notification-actions button {margin:0;min-height:40px;border-radius:999px;padding:9px 15px;font-size:11px;background:#ffffff0a;}
+.feature-screen .notification-actions button:first-child {background:var(--app-accent);color:#142b26;border-color:var(--app-accent);}
+.notification-details {margin-top:4px;font-size:10px;color:var(--app-muted);}
+.notification-details summary {cursor:pointer;display:inline-flex;min-height:30px;align-items:center;}
+#notificationList .notification-details p {font-size:11px;margin:4px 0 8px;}
+#friendsList>div {display:flex;align-items:center;justify-content:space-between;gap:12px;}
+#friendsList>div>p {margin:0;font-weight:500;}
+#friendsList button {border-radius:999px;min-height:44px;}
+.wall-view-hint {margin:6px auto;text-align:center;font-size:10px;}

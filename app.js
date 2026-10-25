@@ -16,8 +16,10 @@ const communitySeen=new Set();
 const COMMUNITY_PAGE=20;
 const imageUrls = new Set();
 const $ = id => document.getElementById(id);
+let noticeTimer;
 function notice(message, error=false) {
   const box=$("appNotice"); box.textContent=message; box.classList.toggle("error",error); box.hidden=false;
+  clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>{box.hidden=true;},error?9000:4500);
 }
 function check(result) { if(result.error) throw result.error; return result.data; }
 async function action(task, button) {
@@ -252,7 +254,7 @@ async function loadFriends() {
   const peeks=check(await supabaseClient.from("wall_peeks").select("owner_id,expires_at").eq("viewer_id",user.id).gt("expires_at",new Date().toISOString()));const owners=new Set(peeks.map(p=>p.owner_id));
   container.replaceChildren();if(!ids.length)row(container,"No friends yet 🐋");
   ids.forEach(id=>row(container,profiles.get(id)||"Friend",owners.has(id)?[["👀 Peek",()=>openPeek(id,profiles.get(id))]]:[]));
-  if(ids.length)row(container,"When a shared moment is accepted and pinned to both walls, you both get a 24-hour peek.");
+
 }
 async function openPeek(id,username) {
   const user=await requireUser();const peeks=check(await supabaseClient.from("wall_peeks").select("expires_at").eq("owner_id",id).eq("viewer_id",user.id).gt("expires_at",new Date().toISOString()).limit(1));
@@ -266,14 +268,14 @@ async function openPeek(id,username) {
 function closePeek() {clearImages($("peekContent"));$("peekContent").replaceChildren();showScreen("friends");}
 async function loadSharedMomentRequests() {
   const container=$("sharedMomentRequests");const session=check(await supabaseClient.auth.getSession()).session;if(!session){empty(container,"Please log in first.");return;}
-  const rows=check(await supabaseClient.from("shared_moments").select("*").or("to_user_id.eq."+session.user.id+",from_user_id.eq."+session.user.id).order("created_at",{ascending:false}));
+  const rows=check(await supabaseClient.from("shared_moments").select("*").or("to_user_id.eq."+session.user.id+",from_user_id.eq."+session.user.id).eq("status","pending").order("created_at",{ascending:false}));
   const profiles=await profileMap(rows.flatMap(r=>[r.from_user_id,r.to_user_id]));container.replaceChildren();if(!rows.length)row(container,"No shared moments yet 🐋");
   rows.forEach(r=>{const incoming=r.to_user_id===session.user.id;const other=profiles.get(incoming?r.from_user_id:r.to_user_id)||"Friend";
-    if(incoming && r.status==="pending")row(container,other+" shared a moment with you.",[["Accept",()=>replyShared(r.id,true)],["Decline",()=>replyShared(r.id,false)]]);
-    else row(container,incoming?other+"'s shared moment: "+r.status:"Shared with "+other+": "+r.status);
+    if(incoming && r.status==="pending")row(container,other+" · shared photo",[["Accept",()=>replyShared(r.id,true)],["Decline",()=>replyShared(r.id,false)]]);
+    else if(r.status==="pending")row(container,"⏳ "+other+" · awaiting reply");
   });
 }
-async function replyShared(id,accept) {check(await supabaseClient.rpc("reply_shared_moment",{request_id:id,accept}));notice(accept?"Shared moment pinned! Both of your 24-hour peeks are open 🐋":"Shared moment declined.");await Promise.all([loadSharedMomentRequests(),loadFriends()]);}
+async function replyShared(id,accept) {check(await supabaseClient.rpc("reply_shared_moment",{request_id:id,accept}));notice(accept?"Pinned! Your peeks are open 👀":"Shared moment declined.");await Promise.all([loadSharedMomentRequests(),loadFriends()]);}
 document.addEventListener("DOMContentLoaded",()=>{
   if(!supabaseClient){notice("Account service failed to load. Refresh to try again.",true);return;}
   $("momentCaption").addEventListener("input",updateWordCount);
@@ -381,7 +383,7 @@ function localDate(date){return [date.getFullYear(),String(date.getMonth()+1).pa
 function updateMemoryControls() {
   $("memoryControls").hidden=!memoryView;
   $("recentTab").setAttribute("aria-pressed",!memoryView);$("memoriesTab").setAttribute("aria-pressed",memoryView);
-  $("wallViewHint").textContent=memoryView?"Your memories, week by week. Only you can browse your full history.":"Your newest 10 moments. Older photos stay in Memories.";
+  $("wallViewHint").textContent=memoryView?"Only you · browse by week":"Newest 10";
   $("memoryDate").max=localDate(new Date());$("memoryDate").value=localDate(memoryWeek);
   const end=new Date(memoryWeek);end.setDate(end.getDate()+6);
   $("memoryWeekLabel").textContent=memoryWeek.toLocaleDateString()+" – "+end.toLocaleDateString();
@@ -1069,7 +1071,7 @@ async function loadNotifications(markSeen=false){
    if(item.kind==='result'){text=name+' responded to your game challenge.';buttons=[['View result',()=>showScreen('games')]];}
    if(item.kind==='deletion'){text=name+' requested account deletion. An account and photo review is required.';buttons=[['Review request',()=>showScreen('admin')]];}
    if(item.kind==='deletion_update'){text='Your account deletion request has been reviewed.';buttons=[['View deletion status',()=>showScreen('profile')]];}
-   row(list,text,buttons);
+   notificationCard(list,name,item,text,buttons);
   });
  }
  if(markSeen){const latest=items.reduce((max,i)=>Date.parse(i.created_at)>Date.parse(max)?i.created_at:max,notificationsSeenAt||'1970-01-01T00:00:00Z');check(await supabaseClient.from('account_preferences').upsert({user_id:session.user.id},{onConflict:'user_id',ignoreDuplicates:true}));check(await supabaseClient.from('account_preferences').update({notifications_seen_at:latest}).eq('user_id',session.user.id));notificationsSeenAt=latest;$('inboxBadge').hidden=true;}
@@ -1104,7 +1106,7 @@ async function loadGameHub(){
  const rows=check(scores),requests=check(challenges),friendIds=friendData.rows.map(f=>f.sender_id===session.user.id?f.receiver_id:f.sender_id);
  const names=await profileMap([...rows.map(r=>r.user_id),...friendIds,...requests.flatMap(c=>[c.challenger_id,c.recipient_id])]);
  if(generation!==socialGeneration||currentScreen!=='games')return;
- $('gameServiceStatus').textContent='Your best scores and accepted friends only. Each round can save once; rounds have a 10-minute play limit.';
+ $('gameServiceStatus').textContent='🏆 Friends’ best scores';
  $('gameLeaderboard').replaceChildren();if(!rows.length)empty($('gameLeaderboard'),'No saved scores yet. Play a round to get started.');rows.forEach((score,index)=>row($('gameLeaderboard'),(index+1)+'. '+(score.user_id===session.user.id?'You':names.get(score.user_id)||'Friend')+' · '+score.score));
  $('challengeFriend').replaceChildren(new Option('Choose a friend',''));friendIds.forEach(id=>$('challengeFriend').add(new Option(names.get(id)||'Friend',id)));
  $('gameChallengeList').replaceChildren();if(!requests.length)empty($('gameChallengeList'),'No challenges yet. Save a score, then send “Beat my score” to a friend.');
@@ -1188,4 +1190,16 @@ async function completeReviewedDeletion(request){
  await mediaRequest('/admin-account-delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({request_id:request.id,confirmation})});
  if(request.user_id===admin.id){setCameraAutoStart(false);homeCameraWanted=false;stopHomeCamera();await supabaseClient.auth.signOut({scope:'local'});resetSocialState();clearAdminReview();clearPeek();clearCommunity();showScreen('home');notice('Your reviewed account deletion has been completed.');return;}
  clearAdminReview();await loadAdminAccounts();await loadDeletionReviewQueue(0,true);notice('Reviewed account and uploaded photos permanently deleted.');
+}
+
+function notificationCard(list,name,item,text,buttons){
+ const labels={friend:'Friend request',share:'Shared photo',locked:'Locked-wall invitation',peek:'Peek open',pong:'Live Pong',challenge:'Game challenge',result:'Challenge result',deletion:'Account review',deletion_update:'Deletion update'};
+ const icons={friend:'👋',share:'📸',locked:'🔒',peek:'👀',pong:'🏓',challenge:'🎮',result:'🏆',deletion:'🛡',deletion_update:'🛡'};
+ const card=document.createElement('div');card.className='notification-card';
+ const avatar=document.createElement('span');avatar.className='notification-avatar';avatar.textContent=icons[item.kind]||'🐋';avatar.setAttribute('aria-hidden','true');
+ const body=document.createElement('div');body.className='notification-body';const title=document.createElement('strong');title.textContent=name;
+ const label=document.createElement('span');label.className='notification-label';label.textContent=labels[item.kind]||'Update';body.append(title,label);
+ const actions=document.createElement('div');actions.className='notification-actions';buttons.forEach(([label,task])=>{const button=document.createElement('button');button.textContent=label;button.onclick=()=>action(task,button);actions.append(button);});
+ const details=document.createElement('details');details.className='notification-details';const summary=document.createElement('summary');summary.textContent='Details';const description=document.createElement('p');description.textContent=text;details.append(summary,description);body.append(details);
+ card.append(avatar,body,actions);list.append(card);
 }
