@@ -6,7 +6,7 @@ function json(data,status=200) { return Response.json(data,{status}); }
 export default {
  async fetch(request,env,ctx) {
   const origin=request.headers.get('Origin');
-  const cors={'Vary':'Origin','Access-Control-Allow-Methods':'GET,PUT,OPTIONS','Access-Control-Allow-Headers':'Authorization,Content-Type','Access-Control-Max-Age':'86400'};
+  const cors={'Vary':'Origin','Access-Control-Allow-Methods':'GET,PUT,POST,OPTIONS','Access-Control-Allow-Headers':'Authorization,Content-Type','Access-Control-Max-Age':'86400'};
   if(origin && !allowed.has(origin)) return json({error:'Origin not allowed'},403);
   if(origin) cors['Access-Control-Allow-Origin']=origin;
   let response;
@@ -27,6 +27,31 @@ async function handle(request,env,ctx) {
  const token=request.headers.get('Authorization');
  if(!token?.startsWith('Bearer ')) return json({error:'Please log in first.'},401);
  const headers={apikey:env.SUPABASE_KEY,Authorization:token,'Content-Type':'application/json'};
+ if(url.pathname==='/account-delete' && request.method==='POST') {
+  const auth=await fetch(`${env.SUPABASE_URL}/auth/v1/user`,{headers});
+  if(!auth.ok)return json({error:'Please sign in again before deleting your account.'},401);
+  const user=await auth.json();if(!UUID.test(user.id))return json({error:'Invalid account.'},401);
+  if(Number(request.headers.get('Content-Length'))>2048)return json({error:'Invalid confirmation.'},400);
+  const reader=request.body?.getReader();if(!reader)return json({error:'Confirmation required.'},400);
+  let total=0,parts=[];while(true){const {done,value}=await reader.read();if(done)break;total+=value.byteLength;if(total>2048){await reader.cancel();return json({error:'Invalid confirmation.'},400);}parts.push(value);}
+  const bytes=new Uint8Array(total);let index=0;for(const part of parts){bytes.set(part,index);index+=part.byteLength;}
+  let data;try{data=JSON.parse(new TextDecoder().decode(bytes));}catch{return json({error:'Invalid confirmation.'},400);}
+  if(data.confirmation!=='DELETE'||typeof data.account_email!=='string'||data.account_email.trim().toLowerCase()!==user.email?.toLowerCase())return json({error:'Confirm DELETE and your account email.'},403);
+  const body=JSON.stringify({confirmation:'DELETE',account_email:data.account_email});
+  const ready=await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/account_deletion_ready`,{method:'POST',headers,body});
+  if(!ready.ok || await ready.json()!==true)return json({error:'Sign in again with your password before deleting your account.'},403);
+  let empty=false;
+  for(let batch=0;batch<20;batch++){
+   const listed=await env.PHOTOS.list({prefix:user.id+'/',limit:100});
+   if(!listed.objects.length){empty=true;break;}
+   const keys=listed.objects.map(o=>o.key);if(keys.some(key=>!key.startsWith(user.id+'/')))return json({error:'Photo cleanup could not be completed.'},503);
+   await env.PHOTOS.delete(keys);
+  }
+  if(!empty)return json({error:'Photo cleanup is in progress. Try deleting again to finish.'},503);
+  const removed=await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/delete_own_account`,{method:'POST',headers,body});
+  if(!removed.ok || await removed.json()!==true)return json({error:'Photos were removed, but account deletion needs another attempt. Please try again.'},503);
+  return json({deleted:true});
+ }
  if(url.pathname==='/upload' && request.method==='PUT') {
   const auth=await fetch(`${env.SUPABASE_URL}/auth/v1/user`,{headers});
   if(!auth.ok) return json({error:'Your session expired. Please log in again.'},401);

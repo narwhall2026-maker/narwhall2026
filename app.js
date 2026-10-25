@@ -52,13 +52,15 @@ function showScreen(screen) {
   $("wallBrowseControls").hidden=screen!=="wall";
   $("privateControls").hidden=screen!=="wall" || currentWall!=="private";
   $("moreMemoriesButton").hidden=true;
-  ["homeScreen","wall","adminScreen","communityScreen","friendsScreen","profileScreen","peekScreen","signupScreen","loginScreen","resetScreen"].forEach(id=>{if($(id)) $(id).style.display="none";});
+  ["homeScreen","inboxScreen","gamesScreen","guideScreen","rulesScreen","wall","adminScreen","communityScreen","friendsScreen","profileScreen","peekScreen","signupScreen","loginScreen","resetScreen"].forEach(id=>{if($(id)) $(id).style.display="none";});
   const target=screen==="wall"?"wall":screen+"Screen"; if($(target)) $(target).style.display="block";
   $("intro").hidden=screen!=="wall"; $("captureButton").hidden=screen!=="wall";
   document.querySelectorAll("[data-screen]").forEach(b=>b.classList.toggle("active",b.dataset.screen===screen));
   $("communityButton").setAttribute("aria-pressed",screen==="community");
   $("cameraHomeButton").hidden=screen==="home";
   if(screen==="home")resumeHomeCamera();
+  if(screen==="inbox")action(()=>loadNotifications(true));
+  if(screen==="games")action(loadGameHub);
   if(screen==="wall") action(async()=>{await loadMoments();if(currentWall==="private")await loadPrivateAccess();});
   if(screen==="friends") action(async()=>{await Promise.all([loadFriendRequests(),loadFriends(),loadSharedMomentRequests(),loadPrivateInvites()]);});
   if(screen==="profile") action(loadProfile);
@@ -98,6 +100,7 @@ async function handlePhotoSelect(event) {
 }
 function openCapture(scope=currentWall) { closeWallSnake();closeWallBounce(); return action(async()=>{await requireUser();if(scope==="community")await requireCommunityAccess();
   if(!["main","private","community"].includes(scope))return;
+  $("captureDestination").value=scope;updateCaptureAudience(scope);
   if(captureScope!==scope){photoSelection++;selectedPhoto=null;if(selectedPhotoUrl)URL.revokeObjectURL(selectedPhotoUrl);selectedPhotoUrl=null;$("momentPhoto").value="";$("momentCaption").value="";}
   stopHomeCamera();homeCaptureOrigin=false;captureScope=scope;$("captureTitle").textContent=captureScope==="community"?"Post to Community 🌍":captureScope==="private"?"A locked-wall moment 🔒":"Capture a moment";$("captureShare").hidden=captureScope!=="main";$("shareFriend").value="";$("capturePanel").classList.add("open");document.body.classList.add("capture-open");updateVisibleHeight();updateCapturePreview();if(selectedPhoto)$("momentCaption").focus();else $("choosePhotoButton").focus();updateWordCount();if(captureScope==="main")await loadShareFriends();return true;}); }
 function closeCapture(resume=true) {
@@ -199,6 +202,7 @@ async function loadProfile() {
   $("adminAreaButton").hidden=true;
   if(session)$("adminAreaButton").hidden=!check(await supabaseClient.rpc("is_narwhall_admin"));
   await loadCommunityBlocks();
+  await loadAccountPreferences(session?.user);
   if(session){const profile=check(await supabaseClient.from("profiles").select("username").eq("id",session.user.id).single());$("username").value=profile.username;}else $("username").value="";
 }
 async function saveUsername() {const user=await requireUser();const username=$("username").value.trim().toLowerCase();validateUsername(username);check(await supabaseClient.from("profiles").update({username}).eq("id",user.id).select("id").single());notice("Username saved 🐋");}
@@ -386,6 +390,7 @@ function chooseCapturePhoto() {
 }
 function updateCapturePreview() {
   const hasPhoto=!!selectedPhoto;
+  updateCaptureAudience(captureScope);
   $("capturePanel").classList.toggle("has-photo",hasPhoto);
   $("retakeButton").textContent=hasPhoto?"Retake":"Choose photo";
   $("retakeButton").disabled=saving;
@@ -556,7 +561,8 @@ function newWallSnake(){
 function placeSnakeFood(state){
   const free=[];
   for(let y=0;y<20;y++)for(let x=0;x<20;x++)if(!state.body.some(p=>p.x===x&&p.y===y))free.push({x,y});
-  return free.length?free[Math.floor(Math.random()*free.length)]:null;
+  const random=state.rng===undefined?Math.random():((state.rng=(Math.imul(1664525,state.rng)+1013904223)>>>0)/4294967296);
+  return free.length?free[Math.floor(random*free.length)]:null;
 }
 function snakeTurn(name){
   const s=wallSnakeState,d=SNAKE_DIRS[name];if(!s || !s.running || !d || s.turned)return;
@@ -564,6 +570,7 @@ function snakeTurn(name){
   s.next=d;s.turned=true;
 }
 function snakeStep(s){
+  if(s.run){if(s.run.proof.length>=3750){s.over=true;s.running=false;return;}s.run.proof.push(s.next.y<0?0:s.next.x>0?1:s.next.y>0?2:3);}
   s.direction=s.next;s.turned=false;
   const head={x:s.body[0].x+s.direction.x,y:s.body[0].y+s.direction.y};
   const eats=head.x===s.food.x&&head.y===s.food.y;
@@ -582,14 +589,17 @@ function drawWallSnake(){
   for(let i=1;i<20;i++){ctx.beginPath();ctx.moveTo(i*30,0);ctx.lineTo(i*30,600);ctx.moveTo(0,i*30);ctx.lineTo(600,i*30);ctx.stroke();}
   s.body.forEach((p,i)=>{ctx.fillStyle=i?"#93f5bd":"#f4ffe8";ctx.shadowColor="#10251c";ctx.shadowBlur=5;ctx.fillRect(p.x*30+2,p.y*30+2,26,26);});ctx.shadowBlur=0;
   if(s.food){ctx.fillStyle="#ff899d";ctx.beginPath();ctx.arc(s.food.x*30+15,s.food.y*30+15,10,0,Math.PI*2);ctx.fill();}
+  if(s.over && s.run && !s.run.submitting)void saveVerifiedRound(s);
   $("snakeScore").textContent=s.score;
   $("snakePause").textContent=s.over?"Play again":s.running?"Pause":s.score||s.body[0].x!==7||s.body[0].y!==10?"Resume":"Start";
   $("snakeStatus").textContent=s.over?(s.food?"Game over! Try again.":"You filled the wall!"):s.running?"Swipe, tap arrows, or use arrow keys / WASD.":"Tap Start or Resume. Space pauses the game.";
 }
-function toggleWallSnake(){
+async function toggleWallSnake(){
   if(!wallSnakeState)return;
   if(wallSnakeState.over)wallSnakeState=newWallSnake();
-  wallSnakeState.running=!wallSnakeState.running;drawWallSnake();
+  const state=wallSnakeState;if(state.starting)return;
+  if(!state.started){state.starting=true;await beginVerifiedRound(state,"snake");state.starting=false;if(wallSnakeState!==state)return;state.started=true;}
+  state.running=!state.running;drawWallSnake();
 }
 function openWallSnake(){
   closeWallBounce();$("wallGameMenu").open=false;
@@ -600,6 +610,7 @@ function openWallSnake(){
 }
 function closeWallSnake(){
   if(!wallSnakeState)return;
+  if(wallSnakeState.run)void saveVerifiedRound(wallSnakeState);
   clearInterval(wallSnakeTimer);wallSnakeTimer=null;wallSnakeState=null;$("wallSnake").hidden=true;
   wallSnakeReturnFocus?.focus({preventScroll:true});
 }
@@ -685,7 +696,7 @@ async function loadAdminWall(reset=true){
 document.addEventListener("DOMContentLoaded",()=>{$("adminSearchForm").addEventListener("submit",event=>{event.preventDefault();adminPage=0;action(()=>loadAdminAccounts());});});
 
 
-let wallBounceState=null,wallBounceFrame=null,wallBounceLast=0,wallBounceFocus=null;
+let wallBounceState=null,wallBounceFrame=null,wallBounceLast=0,wallBounceAccumulator=0,wallBounceFocus=null;
 const bounceKeys=new Set();
 function newWallBounce(){
   const bubbles=[];
@@ -695,6 +706,8 @@ function newWallBounce(){
 function moveBouncePaddle(s,x){s.paddle=Math.max(58,Math.min(542,x));if(s.ready)s.ball.x=s.paddle;}
 function bounceStep(s,dt,input=0){
   if(!s.running||s.over)return;
+  moveBouncePaddle(s,Math.round(s.paddle*10)/10);
+  if(s.run){if(s.run.proof.length>=72000){s.over=true;s.running=false;return;}s.run.proof.push([Math.round(s.paddle*10),input]);}
   moveBouncePaddle(s,s.paddle+input*440*dt);
   const b=s.ball,previousY=b.y;b.x+=b.vx*dt;b.y+=b.vy*dt;
   if(b.x<9){b.x=9;b.vx=Math.abs(b.vx);}if(b.x>591){b.x=591;b.vx=-Math.abs(b.vx);}
@@ -720,30 +733,33 @@ function drawWallBounce(){
   s.bubbles.forEach((bubble,i)=>{if(!bubble.alive)return;ctx.beginPath();ctx.arc(bubble.x,bubble.y,bubble.r,0,Math.PI*2);ctx.fillStyle=["#b8a5ffb8","#99e5ffb8","#ffb3d0b8","#97f2cfb8"][Math.floor(i/6)];ctx.fill();ctx.strokeStyle="#ffffffb0";ctx.lineWidth=2;ctx.stroke();ctx.font="27px sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText("🐋",bubble.x,bubble.y+1);});
   ctx.fillStyle="#e6d8ff";ctx.shadowColor="#332459";ctx.shadowBlur=10;ctx.fillRect(s.paddle-58,550,116,14);ctx.shadowBlur=0;
   ctx.beginPath();ctx.arc(s.ball.x,s.ball.y,9,0,Math.PI*2);ctx.fillStyle="#fff9d6";ctx.fill();
+  if(s.over && s.run && !s.run.submitting)void saveVerifiedRound(s);
   $("bounceScore").textContent=s.score;$("bounceLives").textContent=Array.from({length:s.lives},()=>"♥").join(" ")||"0 lives";
   $("bouncePause").textContent=s.over?"Play again":s.running?"Pause":s.ready?"Launch":"Resume";
   $("bounceStatus").textContent=s.over?(s.lives?"All bubbles popped! Play again?":"Game over! Try again."):s.running?"Drag anywhere on the board, or hold the arrows.":s.ready?(s.lives<3?"One life lost. Tap Launch to try again!":"Pop the narwhal bubbles. Tap Launch!"):"Paused. Tap Resume when you're ready.";
 }
-function toggleWallBounce(){
+async function toggleWallBounce(){
   if(!wallBounceState)return;if(wallBounceState.over)wallBounceState=newWallBounce();
-  wallBounceState.running=!wallBounceState.running;if(wallBounceState.running)wallBounceState.ready=false;
+  const state=wallBounceState;if(state.starting)return;
+  if(!state.started){state.starting=true;await beginVerifiedRound(state,"bounce");state.starting=false;if(wallBounceState!==state)return;state.started=true;}
+  state.running=!state.running;if(state.running)state.ready=false;
   wallBounceLast=0;drawWallBounce();
 }
 function animateWallBounce(now){
   if(!wallBounceState)return;
   const elapsed=wallBounceLast?Math.min((now-wallBounceLast)/1000,0.05):0;wallBounceLast=now;
   const input=(bounceKeys.has("right")?1:0)-(bounceKeys.has("left")?1:0);
-  for(let left=elapsed;left>0;left-=1/120)bounceStep(wallBounceState,Math.min(left,1/120),input);
+  wallBounceAccumulator+=elapsed;while(wallBounceAccumulator>=1/120){bounceStep(wallBounceState,1/120,input);wallBounceAccumulator-=1/120;}
   drawWallBounce();wallBounceFrame=requestAnimationFrame(animateWallBounce);
 }
 function openWallBounce(){
   closeWallSnake();$("wallGameMenu").open=false;if(wallBounceState)return;
-  wallBounceFocus=document.activeElement;wallBounceState=newWallBounce();wallBounceLast=0;bounceKeys.clear();
+  wallBounceFocus=document.activeElement;wallBounceState=newWallBounce();wallBounceLast=0;wallBounceAccumulator=0;bounceKeys.clear();
   $("wallBounce").hidden=false;$("wallBounce").scrollIntoView({block:"nearest",behavior:"auto"});drawWallBounce();$("bounceCanvas").focus({preventScroll:true});
   wallBounceFrame=requestAnimationFrame(animateWallBounce);
 }
 function closeWallBounce(){
-  if(!wallBounceState)return;cancelAnimationFrame(wallBounceFrame);wallBounceFrame=null;wallBounceState=null;bounceKeys.clear();$("wallBounce").hidden=true;wallBounceFocus?.focus({preventScroll:true});
+  if(!wallBounceState)return;if(wallBounceState.run)void saveVerifiedRound(wallBounceState);cancelAnimationFrame(wallBounceFrame);wallBounceFrame=null;wallBounceState=null;bounceKeys.clear();$("wallBounce").hidden=true;wallBounceFocus?.focus({preventScroll:true});
 }
 function pauseWallBounce(){bounceKeys.clear();if(wallBounceState){wallBounceState.running=false;wallBounceLast=0;drawWallBounce();}}
 document.addEventListener("DOMContentLoaded",()=>{
@@ -785,7 +801,7 @@ function goUnlockCommunity(){action(async()=>{const session=check(await supabase
 // Coarse account administration details; no raw user-agent, IP or device identifier is stored.
 let activityLastInput=Date.now(),activityLastAttempt=0,activityPending=false;
 async function recordAccountActivity(){
-  if(!supabaseClient || document.hidden || activityPending || Date.now()-activityLastInput>120000 || Date.now()-activityLastAttempt<60000)return;
+  if(!allowAccountActivity || !supabaseClient || document.hidden || activityPending || Date.now()-activityLastInput>120000 || Date.now()-activityLastAttempt<60000)return;
   activityPending=true;
   try{
     const session=check(await supabaseClient.auth.getSession()).session;
@@ -836,6 +852,7 @@ async function startHomeCamera(){
   }finally{if(generation===homeCameraGeneration){homeCameraOpening=false;$("homeEnableCamera").disabled=false;}}
 }
 async function resumeHomeCamera(){
+  if(!homeCameraAutoStart)return;
   if(currentScreen!=="home" || document.hidden || homeCameraStream || homeCameraOpening || $("capturePanel").classList.contains("open"))return;
   if(homeCameraWanted){void startHomeCamera();return;}
   try{const permission=await navigator.permissions?.query({name:"camera"});if(permission?.state==="granted" && currentScreen==="home")void startHomeCamera();}catch{/* First visit and unsupported browsers use the explicit Enable camera button. */}
@@ -987,3 +1004,118 @@ function startHomeEffects(){
   };
   homeEffectsFrame=requestAnimationFrame(loop);
 }
+
+let socialGeneration=0,notificationsSeenAt=null,onboardingUser=null,lastGuideUser=null,activeGameChallenge=null;
+function browserSetting(key,fallback){try{const value=localStorage.getItem(key);return value===null?fallback:value==='true';}catch{return fallback;}}
+let homeCameraAutoStart=browserSetting('narwhall-camera-auto',true),allowAccountActivity=browserSetting('narwhall-activity',true);
+function setCameraAutoStart(value){homeCameraAutoStart=!!value;try{localStorage.setItem('narwhall-camera-auto',String(homeCameraAutoStart));}catch{}$('cameraAutoStart').checked=homeCameraAutoStart;}
+function stopCameraFromSettings(){setCameraAutoStart(false);homeCameraWanted=false;stopHomeCamera();notice('Camera stopped. You can still enable it manually on the camera screen.');}
+function setActivityOptIn(value){allowAccountActivity=!!value;try{localStorage.setItem('narwhall-activity',String(allowAccountActivity));}catch{}notice(value?'Basic activity reporting enabled on this browser.':'New activity reporting stopped on this browser.');}
+function resetSocialState(){photoSelection++;selectedPhoto=null;if(selectedPhotoUrl)URL.revokeObjectURL(selectedPhotoUrl);selectedPhotoUrl=null;$('momentPhoto').value='';$('momentCaption').value='';updateWordCount();updateCapturePreview();closeCapture(false);socialGeneration++;notificationsSeenAt=null;onboardingUser=null;activeGameChallenge=null;$('inboxBadge').hidden=true;['notificationList','gameLeaderboard','gameChallengeList'].forEach(id=>$(id).replaceChildren());$('deleteEmail').value='';$('deletePassword').value='';$('deleteConfirm').value='';}
+async function loadAccountPreferences(user){
+ $('cameraAutoStart').checked=homeCameraAutoStart;$('activityOptIn').checked=allowAccountActivity;if(onboardingUser&&onboardingUser!==user?.id)resetSocialState();onboardingUser=user?.id||null;
+ if(!user){resetSocialState();return;}
+ const generation=socialGeneration;
+ const prefs=check(await supabaseClient.from('account_preferences').select('*').eq('user_id',user.id).maybeSingle());
+ if(generation!==socialGeneration)return;
+ notificationsSeenAt=prefs?.notifications_seen_at||null;$('deleteEmail').value=user.email||'';
+ if(!prefs)check(await supabaseClient.from('account_preferences').upsert({user_id:user.id},{onConflict:'user_id',ignoreDuplicates:true}));
+ void action(()=>loadNotifications(false));
+ if(!prefs?.onboarding_done&&currentScreen==='home'&&lastGuideUser!==user.id){lastGuideUser=user.id;showScreen('guide');}
+}
+async function finishGuide(){const session=check(await supabaseClient.auth.getSession()).session;if(session){check(await supabaseClient.from('account_preferences').upsert({user_id:session.user.id},{onConflict:'user_id',ignoreDuplicates:true}));check(await supabaseClient.from('account_preferences').update({onboarding_done:true}).eq('user_id',session.user.id));}showScreen('home');}
+function updateCaptureAudience(scope){
+ if(!$('captureAudience'))return;
+ const friend=scope==='main'&&$('shareFriend').value;
+ $('captureAudience').textContent=scope==='community'?'Public Community post: visible to members who unlock Community, including people who aren’t your friends.':scope==='private'?'Locked wall: visible to you, admins for moderation, and friends with an active locked-wall invitation.':friend?'Your main wall + a request to your selected friend. If they accept, it pins to both walls and opens mutual main-wall peeks for 24 hours. Admins can review for moderation.':'Your main wall: visible to you, admins for moderation, and friends with an active 24-hour peek.';
+ $('captureDestination').disabled=saving;$('shareFriend').disabled=saving;
+}
+async function changeCaptureDestination(){
+ const destination=$('captureDestination').value,previous=captureScope;if(saving){$('captureDestination').value=previous;return;}
+ try{
+  if(destination==='community'){await requireCommunityAccess();if(previous==='private'&&!confirm('Move this locked-wall draft to a public Community post? Eligible Community members will be able to see it.')){$('captureDestination').value=previous;return;}}
+  captureScope=destination;$('shareFriend').value='';$('captureShare').hidden=destination!=='main';$('captureTitle').textContent=destination==='community'?'Post to Community 🌍':destination==='private'?'A locked-wall moment 🔒':'Capture a moment';
+  if(destination==='main')await loadShareFriends();updateCapturePreview();
+ }catch(error){captureScope=previous;$('captureDestination').value=previous;$('captureShare').hidden=previous!=='main';$('captureTitle').textContent=previous==='community'?'Post to Community 🌍':previous==='private'?'A locked-wall moment 🔒':'Capture a moment';updateCapturePreview();throw error;}
+}
+async function loadNotifications(markSeen=false){
+ const generation=socialGeneration;const session=check(await supabaseClient.auth.getSession()).session;
+ if(!session){$('inboxBadge').hidden=true;if(currentScreen==='inbox')empty($('notificationList'),'Log in to see your notifications.');return;}
+ const items=check(await supabaseClient.rpc('notification_inbox'));const names=await profileMap(items.map(i=>i.actor_id));
+ if(generation!==socialGeneration)return;
+ const unseen=items.filter(i=>!notificationsSeenAt||Date.parse(i.created_at)>Date.parse(notificationsSeenAt));$('inboxBadge').textContent=unseen.length>99?'99+':unseen.length;$('inboxBadge').hidden=!unseen.length;
+ if(currentScreen==='inbox'){
+  const list=$('notificationList');list.replaceChildren();if(!items.length)empty(list,'You’re all caught up. New requests and invitations will appear here.');
+  items.forEach(item=>{
+   const name=names.get(item.actor_id)||'Friend',after=async task=>{await task();await loadNotifications(true);};let text='',buttons=[];
+   if(item.kind==='friend'){text=name+' wants to be your friend.';buttons=[['Accept',()=>after(()=>replyFriend(item.reference_id,'accepted'))],['Decline',()=>after(()=>replyFriend(item.reference_id,'declined'))]];}
+   if(item.kind==='share'){text=name+' shared a photo for your wall.';buttons=[['Accept & pin',()=>after(()=>replyShared(item.reference_id,true))],['Decline',()=>after(()=>replyShared(item.reference_id,false))]];}
+   if(item.kind==='locked'){text=name+' invited you to their locked wall until '+new Date(item.expires_at).toLocaleString();buttons=[['View locked wall',()=>openPrivatePeek(item.actor_id,name)]];}
+   if(item.kind==='peek'){text='Your peek at '+name+'’s main wall is open until '+new Date(item.expires_at).toLocaleString();buttons=[['Peek',()=>openPeek(item.actor_id,name)]];}
+   if(item.kind==='challenge'){text=name+' sent you a game challenge.';buttons=[['View challenge',()=>showScreen('games')]];}
+   if(item.kind==='result'){text=name+' responded to your game challenge.';buttons=[['View result',()=>showScreen('games')]];}
+   row(list,text,buttons);
+  });
+ }
+ if(markSeen){const latest=items.reduce((max,i)=>Date.parse(i.created_at)>Date.parse(max)?i.created_at:max,notificationsSeenAt||'1970-01-01T00:00:00Z');check(await supabaseClient.from('account_preferences').upsert({user_id:session.user.id},{onConflict:'user_id',ignoreDuplicates:true}));check(await supabaseClient.from('account_preferences').update({notifications_seen_at:latest}).eq('user_id',session.user.id));notificationsSeenAt=latest;$('inboxBadge').hidden=true;}
+}
+async function gameService(body){
+ const session=check(await supabaseClient.auth.getSession()).session;if(!session)throw new Error('Log in to save scores and challenge friends.');
+ const response=await fetch(supabaseUrl+'/functions/v1/narwhall-games',{method:'POST',headers:{Authorization:'Bearer '+session.access_token,apikey:supabaseKey,'Content-Type':'application/json'},body:JSON.stringify(body)});
+ const result=await response.json();if(!response.ok)throw new Error(result.error||'Game service unavailable.');return result;
+}
+async function beginVerifiedRound(state,game){
+ try{
+  const session=check(await supabaseClient.auth.getSession()).session;if(!session)return;
+  const ticket=await gameService({action:'start',game});state.rng=ticket.seed;state.run={id:ticket.id,game,proof:[],userId:session.user.id,challenge:activeGameChallenge?.game===game?activeGameChallenge.id:null,submitting:false};
+ }catch(error){notice('This round can still be played, but its score won’t be saved: '+error.message,true);}
+}
+async function saveVerifiedRound(state){
+ const run=state.run;if(!run||run.submitting||!run.proof.length)return;run.submitting=true;
+ try{
+  const result=await gameService({action:'finish',runId:run.id,proof:run.proof});
+  let message='Score saved: '+result.score+' in '+(run.game==='snake'?'Snake':'Bubble Bounce')+'.';
+  if(run.challenge){const outcome=check(await supabaseClient.rpc('reply_game_challenge',{p_challenge:run.challenge,p_run:result.runId}));message+=' Challenge '+outcome+'!';activeGameChallenge=null;}
+  notice(message);if(currentScreen==='games')await loadGameHub();
+ }catch(error){notice('Couldn’t save this score: '+error.message,true);}
+ finally{run.proof=[];}
+}
+function launchChallengeGame(game,challenge=null){activeGameChallenge=challenge;showScreen('wall');if(game==='snake')openWallSnake();else openWallBounce();}
+async function loadGameHub(){
+ const generation=socialGeneration;const session=check(await supabaseClient.auth.getSession()).session;
+ if(!session){empty($('gameLeaderboard'),'Log in to save best scores and challenge your friends.');$('gameChallengeList').replaceChildren();return;}
+ const game=$('leaderboardGame').value;
+ const [scores,challenges,friendData]=await Promise.all([supabaseClient.from('game_scores').select('*').eq('game',game).order('score',{ascending:false}).limit(100),supabaseClient.from('game_challenges').select('*').or('challenger_id.eq.'+session.user.id+',recipient_id.eq.'+session.user.id).order('created_at',{ascending:false}).limit(50),friendships()]);
+ const rows=check(scores),requests=check(challenges),friendIds=friendData.rows.map(f=>f.sender_id===session.user.id?f.receiver_id:f.sender_id);
+ const names=await profileMap([...rows.map(r=>r.user_id),...friendIds,...requests.flatMap(c=>[c.challenger_id,c.recipient_id])]);
+ if(generation!==socialGeneration||currentScreen!=='games')return;
+ $('gameServiceStatus').textContent='Your best scores and accepted friends only. Each round can save once; rounds have a 10-minute play limit.';
+ $('gameLeaderboard').replaceChildren();if(!rows.length)empty($('gameLeaderboard'),'No saved scores yet. Play a round to get started.');rows.forEach((score,index)=>row($('gameLeaderboard'),(index+1)+'. '+(score.user_id===session.user.id?'You':names.get(score.user_id)||'Friend')+' · '+score.score));
+ $('challengeFriend').replaceChildren(new Option('Choose a friend',''));friendIds.forEach(id=>$('challengeFriend').add(new Option(names.get(id)||'Friend',id)));
+ $('gameChallengeList').replaceChildren();if(!requests.length)empty($('gameChallengeList'),'No challenges yet. Save a score, then send “Beat my score” to a friend.');
+ requests.forEach(c=>{
+  const incoming=c.recipient_id===session.user.id,name=names.get(incoming?c.challenger_id:c.recipient_id)||'Friend',pending=c.status==='pending'&&Date.parse(c.expires_at)>Date.now();
+  const text=(c.game==='snake'?'🐍 Snake':'🐋 Bubble Bounce')+' · '+(incoming?'From ':'To ')+name+' · target '+c.target_score+' · '+(pending?'Open for 7 days':c.status==='pending'?'Expired':c.status)+(c.response_score===null?'':' · reply '+c.response_score);
+  row($('gameChallengeList'),text,incoming&&pending?[['Play challenge',()=>launchChallengeGame(c.game,c)],['Decline',async()=>{check(await supabaseClient.rpc('reply_game_challenge',{p_challenge:c.id,p_run:null}));await loadGameHub();}]]:[]);
+ });
+}
+async function sendGameChallenge(){
+ const user=await requireUser(),friend=$('challengeFriend').value,game=$('challengeGame').value;if(!friend)throw new Error('Choose a friend.');
+ const score=check(await supabaseClient.from('game_scores').select('run_id,score').eq('user_id',user.id).eq('game',game).maybeSingle());if(!score||score.score===0)throw new Error('Save a score above zero in this game first.');
+ check(await supabaseClient.rpc('challenge_friend',{p_run:score.run_id,p_friend:friend}));notice('Beat my score challenge sent!');await loadGameHub();
+}
+async function deleteMyAccount(){
+ const user=await requireUser(),email=$('deleteEmail').value.trim(),password=$('deletePassword').value,confirmation=$('deleteConfirm').value;
+ if(email.toLowerCase()!==user.email.toLowerCase()||confirmation!=='DELETE'||!password)throw new Error('Enter your account email, password and DELETE.');
+ if(!confirm('Permanently delete your Narwhall account and uploaded photos, including shared copies? This cannot be undone.'))return;
+ const auth=await supabaseClient.auth.signInWithPassword({email,password});$('deletePassword').value='';check(auth);
+ await mediaRequest('/account-delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({confirmation,account_email:email})});
+ setCameraAutoStart(false);homeCameraWanted=false;stopHomeCamera();photoSelection++;selectedPhoto=null;if(selectedPhotoUrl)URL.revokeObjectURL(selectedPhotoUrl);selectedPhotoUrl=null;
+ await supabaseClient.auth.signOut({scope:'local'});resetSocialState();clearCommunity();clearAdminReview();clearPeek();clearImages($('wall'));$('wall').replaceChildren();showScreen('home');notice('Your account and uploaded photos have been deleted.');
+}
+document.addEventListener('DOMContentLoaded',()=>{
+ $('shareFriend').addEventListener('change',()=>updateCaptureAudience(captureScope));
+ $('deleteAccountForm').addEventListener('submit',event=>{event.preventDefault();action(deleteMyAccount,$('deleteAccountButton'));});
+ supabaseClient?.auth.onAuthStateChange((event,session)=>{setTimeout(()=>{if(event==='SIGNED_OUT')resetSocialState();else if(event==='SIGNED_IN'&&session?.user)action(()=>loadAccountPreferences(session.user));},0);});
+ setInterval(()=>{if(!document.hidden)action(()=>loadNotifications(false));},60000);
+});

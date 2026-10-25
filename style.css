@@ -433,3 +433,33 @@ header {gap:10px;}
 .home-hat-control>span {font-size:10px;color:#a99cb8;}
 #homeEffectsStatus {max-width:400px;min-height:18px;text-align:center;font-size:11px;line-height:1.5;color:#ccb9e7;margin:8px auto 0;}
 @media(max-width:360px){.home-filter-controls button {padding:10px 11px;font-size:11px;}}
+.feature-screen {max-width:650px;margin:0 auto;padding:24px 18px 40px;box-sizing:border-box;}
+.feature-screen h2 {font-family:'Caveat',cursive;font-size:38px;line-height:1.15;}
+.feature-screen p,.feature-screen li {font-size:14px;line-height:1.8;color:#cbc2d1;}
+.feature-screen button,.account-settings button,.account-links button {min-height:44px;padding:10px 14px;border:1px solid #62556e;border-radius:14px;background:#202331;color:#f5e9d6;font:inherit;font-size:13px;margin:5px 5px 5px 0;cursor:pointer;}
+.feature-screen .feature-primary {background:#eee3d2;color:#28212d;font-weight:600;}
+.feature-screen input,.feature-screen select,.account-settings input {font-size:16px;min-height:44px;max-width:100%;box-sizing:border-box;}
+.guide-steps {padding-left:25px;}.guide-steps li {padding:10px 0 12px 8px;}.guide-steps p {margin:5px 0;}
+.feature-eyebrow {letter-spacing:2px;font-size:10px!important;color:#bca3d8!important;}
+#notificationList>div,#gameChallengeList>div,#gameLeaderboard>div {padding:14px;margin:12px 0;border:1px solid #3e384a;border-radius:16px;background:#141722;overflow-wrap:anywhere;}
+#notificationList p,#gameChallengeList p {margin:0 0 8px;}
+#inboxButton {position:relative;flex-shrink:0;min-width:44px;font-size:22px;padding:4px 10px;}
+#inboxBadge {position:absolute;top:-5px;right:-5px;border-radius:12px;background:#d3b5ef;color:#20172a;font-size:10px;min-width:16px;padding:2px;}
+#inboxBadge[hidden] {display:none;}
+.home-help-links {display:flex;gap:8px;justify-content:center;flex-wrap:wrap;}.home-help-links button {min-height:44px;padding:8px 10px;background:transparent;border:0;color:#bfa9d2;font:inherit;font-size:12px;text-decoration:underline;}
+.capture-audience {font-size:11px;line-height:1.6;color:#c9bbda;margin:8px 0 14px;}
+.account-settings {margin:18px 0;padding:14px;border:1px solid #4c405a;border-radius:16px;}.account-settings summary {cursor:pointer;min-height:44px;display:flex;align-items:center;font-size:14px;}.account-settings p {font-size:12px;line-height:1.7;color:#bfb3cc;}
+.setting-check {display:flex;align-items:center;gap:10px;line-height:1.6;font-size:13px;margin:12px 0;}.setting-check input {width:22px;min-width:22px;}
+.danger-zone {border-color:#8c4b5b;}.danger-zone button {background:#6a293c;color:#fff;}
+#rulesScreen a {color:#d4b7ed;}
+@media(max-width:380px){#cameraHomeButton {font-size:10px;padding:7px;}#inboxButton {min-width:36px;padding:4px 7px;}.feature-screen {padding:18px 12px 30px;}}
+@media(max-width:600px){
+ header {display:grid;grid-template-columns:minmax(0,1fr) auto auto;column-gap:8px;row-gap:5px;align-items:start;}
+ header .brand-area {grid-column:1;grid-row:1/3;max-width:none;min-width:0;}
+ header .logo {font-size:clamp(23px,6.6vw,31px);}
+ #inboxButton {grid-column:2;grid-row:1;}
+ #profileButton {grid-column:3;grid-row:1;}
+ #cameraHomeButton {grid-column:2/4;grid-row:2;justify-self:end;min-height:36px;}
+ header .intro {position:relative;grid-column:1/4;grid-row:3;justify-self:end;right:auto;top:auto;max-width:180px;margin:8px 0 0;}
+ .community-link {font-size:11px;padding:8px 10px;max-width:100%;}
+}
