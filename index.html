@@ -117,12 +117,12 @@
     <div class="capture-box" role="dialog" aria-modal="true" aria-label="Capture a moment">
       <button class="close-capture" onclick="closeCapture()" aria-label="Close">✕</button>
       <h2 id="captureTitle">Capture a moment</h2>
-      <p id="captureHint">Pick a photo, add a little caption, then pin it.</p>
+      <p id="captureHint">Pick a photo, add a caption if you like, then pin it.</p>
       <input type="file" id="momentPhoto" accept="image/*" class="capture-file" tabindex="-1" aria-label="Choose a photo">
       <div class="capture-polaroid">
         <div id="photoPreview"><button id="choosePhotoButton" class="choose-photo" onclick="chooseCapturePhoto()"><span aria-hidden="true">📷</span>Choose a photo</button></div>
-        <label for="momentCaption" class="visually-hidden">Your caption</label>
-        <textarea id="momentCaption" maxlength="30" rows="1" placeholder="Write something…" aria-describedby="captionCount"></textarea>
+        <label for="momentCaption" class="visually-hidden">Your caption (optional)</label>
+        <textarea id="momentCaption" maxlength="30" rows="1" placeholder="Caption (optional)…" aria-describedby="captionCount"></textarea>
         <div id="captionCount" class="word-count"><span id="wordCount">0</span>/15 characters</div>
       </div>
       <div id="captureShare"><label for="shareFriend">Select friend</label>

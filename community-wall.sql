@@ -2,7 +2,7 @@ begin;
 create table public.community_posts (
  id uuid primary key default gen_random_uuid(),
  user_id uuid not null references public.profiles(id) on delete cascade,
- caption text not null check(char_length(btrim(caption)) between 1 and 15),
+ caption text not null default '' check(char_length(caption)<=15),
  photo_url text not null check(photo_url ~ '^[0-9a-f-]{36}/[0-9a-f-]{36}[.](jpg|png|webp)$'),
  created_at timestamptz not null default now(),
  deleted_at timestamptz,

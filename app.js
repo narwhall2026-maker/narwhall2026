@@ -121,7 +121,7 @@ async function saveMoment() {
   try {await action(async()=>{
     const user=await requireUser();const scope=captureScope;if(scope==="community")await requireCommunityAccess();const friend=scope==="main"?$("shareFriend").value:"";const caption=$("momentCaption").value.trim();
     if(!selectedPhoto) throw new Error("Add a photo first 🐋");
-    if(!caption || Array.from(caption).length>15) throw new Error("Add a caption of 1–15 characters.");
+    if(Array.from(caption).length>15) throw new Error("Keep your caption to 15 characters or fewer.");
     const upload=await (await mediaRequest("/upload",{method:"PUT",body:selectedPhoto,headers:{"Content-Type":"image/jpeg"}})).json();
     let moment;
     if(scope==="community") check(await supabaseClient.from("community_posts").insert({user_id:user.id,caption,photo_url:upload.key}));
@@ -165,11 +165,11 @@ async function loadMoments(append=false) {
 }
 async function makeCard(moment,container,editable=false) {
   const card=document.createElement("div");card.className="polaroid";
-  const img=document.createElement("img");img.alt=moment.caption;img.draggable=false;img.src=await photoUrl(moment.photo_url);
+  const img=document.createElement("img");img.alt=moment.caption||"Wall photo";img.draggable=false;img.src=await photoUrl(moment.photo_url);
   const caption=document.createElement("div");caption.className="polaroid-caption";caption.textContent=moment.caption;
   card.append(img,caption);
   if(editable) {
-    const remove=document.createElement("button");remove.className="trash";remove.textContent="×";remove.title="Hide moment";remove.setAttribute("aria-label","Hide "+moment.caption);
+    const remove=document.createElement("button");remove.className="trash";remove.textContent="×";remove.title="Hide moment";remove.setAttribute("aria-label",moment.caption?"Hide "+moment.caption:"Hide photo");
     remove.onclick=()=>action(async()=>{if(!confirm("Hide this moment from your wall?"))return;check(await supabaseClient.from("moments").update({deleted_at:new Date().toISOString()}).eq("id",moment.id).select("id").single());await loadMoments();},remove);
     const share=document.createElement("button");share.className="share-card";share.textContent="Share";share.onclick=()=>action(async()=>{const user=await requireUser();const username=prompt("Share with which friend's username?");if(!username)return;const friend=check(await supabaseClient.from("profiles").select("id").eq("username",username.trim().toLowerCase()).single());check(await supabaseClient.from("shared_moments").insert({moment_id:moment.id,from_user_id:user.id,to_user_id:friend.id}));notice("Moment shared 🐋");},share);
     card.append(remove);if(moment.wall_scope!=="private")card.append(share);card.style.left=moment.position_x+"%";card.style.top=moment.position_y+"%";card.style.transform="rotate("+moment.rotation+"deg)";enableDrag(card,container,moment);
@@ -391,7 +391,7 @@ function updateCapturePreview() {
   $("retakeButton").disabled=saving;
   $("pinButton").disabled=!hasPhoto || saving;
   $("pinButton").textContent=captureScope==="community"?"Post publicly":"Pin";
-  $("captureHint").textContent=captureScope==="community"?"Members who unlock Community can see this photo and your username.":captureScope==="private"?"This moment goes on your locked wall 🔒":"Pick a photo, add a little caption, then pin it.";
+  $("captureHint").textContent=captureScope==="community"?"Members who unlock Community can see this photo and your username.":captureScope==="private"?"This moment goes on your locked wall 🔒":"Pick a photo, add a caption if you like, then pin it.";
   if(!hasPhoto){
     const button=document.createElement("button");button.id="choosePhotoButton";button.className="choose-photo";button.textContent="📷 Choose a photo";button.onclick=chooseCapturePhoto;
     $("photoPreview").replaceChildren(button);
@@ -495,7 +495,7 @@ async function loadCommunity(reset=true) {
 async function makeCommunityCard(post,username,userId) {
   const card=document.createElement("article");card.className="community-card";card.dataset.postId=post.id;
   card.style.setProperty("--card-tilt",((parseInt(post.id.slice(-2),16)%7)-3)+"deg");
-  const img=document.createElement("img");img.alt=post.caption;img.decoding="async";
+  const img=document.createElement("img");img.alt=post.caption||"Community photo";img.decoding="async";
   try{img.src=await photoUrl(post.photo_url);card.append(img);}catch{const missing=document.createElement("div");missing.className="community-photo-error";missing.textContent="Photo couldn't load. Refresh to try again.";card.append(missing);}
   const caption=document.createElement("p");caption.className="community-caption";caption.textContent=post.caption;
   const author=document.createElement("p");author.className="community-author";author.textContent="@"+username;
