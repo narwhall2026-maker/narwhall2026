@@ -64,7 +64,7 @@ function showScreen(screen) {
   if(screen==="wall") action(async()=>{await loadMoments();if(currentWall==="private")await loadPrivateAccess();});
   if(screen==="friends") action(async()=>{await Promise.all([loadFriendRequests(),loadFriends(),loadSharedMomentRequests(),loadPrivateInvites()]);});
   if(screen==="profile") action(loadProfile);
-  if(screen==="admin")action(()=>loadAdminAccounts());
+  if(screen==="admin")action(async()=>{await loadAdminAccounts();await loadDeletionReviewQueue(0,true);});
   if(screen==="community")action(()=>loadCommunity(true));
 }
 function updateWordCount() {
@@ -643,6 +643,7 @@ document.addEventListener("DOMContentLoaded",()=>{
 
 let adminGeneration=0,adminPage=0,adminSearchText="",adminWall=null,adminOffset=0,adminWallLoading=false;
 function clearAdminReview(){
+  deletionQueueGeneration++;$("adminDeletionList").replaceChildren();$("adminDeletionPassword").value="";
   adminGeneration++;adminWall=null;adminWallLoading=false;adminOffset=0;
   clearImages($("adminPhotos"));$("adminPhotos").replaceChildren();$("adminAccountList").replaceChildren();
   $("adminReview").hidden=true;$("adminMorePhotos").hidden=true;$("adminWallTitle").textContent="";$("adminStatus").textContent="";
@@ -1011,7 +1012,7 @@ let homeCameraAutoStart=browserSetting('narwhall-camera-auto',true),allowAccount
 function setCameraAutoStart(value){homeCameraAutoStart=!!value;try{localStorage.setItem('narwhall-camera-auto',String(homeCameraAutoStart));}catch{}$('cameraAutoStart').checked=homeCameraAutoStart;}
 function stopCameraFromSettings(){setCameraAutoStart(false);homeCameraWanted=false;stopHomeCamera();notice('Camera stopped. You can still enable it manually on the camera screen.');}
 function setActivityOptIn(value){allowAccountActivity=!!value;try{localStorage.setItem('narwhall-activity',String(allowAccountActivity));}catch{}notice(value?'Basic activity reporting enabled on this browser.':'New activity reporting stopped on this browser.');}
-function resetSocialState(){photoSelection++;selectedPhoto=null;if(selectedPhotoUrl)URL.revokeObjectURL(selectedPhotoUrl);selectedPhotoUrl=null;$('momentPhoto').value='';$('momentCaption').value='';updateWordCount();updateCapturePreview();closeCapture(false);socialGeneration++;notificationsSeenAt=null;onboardingUser=null;activeGameChallenge=null;$('inboxBadge').hidden=true;['notificationList','gameLeaderboard','gameChallengeList','challengeFriend'].forEach(id=>$(id).replaceChildren());const option=document.createElement('option');option.value='';option.textContent='Choose a friend';$('challengeFriend').append(option);$('gameServiceStatus').textContent='';$('deleteAccountSettings').hidden=true;$('deleteEmail').value='';$('deletePassword').value='';$('deleteConfirm').value='';}
+function resetSocialState(){photoSelection++;selectedPhoto=null;if(selectedPhotoUrl)URL.revokeObjectURL(selectedPhotoUrl);selectedPhotoUrl=null;$('momentPhoto').value='';$('momentCaption').value='';updateWordCount();updateCapturePreview();closeCapture(false);socialGeneration++;notificationsSeenAt=null;onboardingUser=null;activeGameChallenge=null;$('inboxBadge').hidden=true;['notificationList','gameLeaderboard','gameChallengeList','challengeFriend'].forEach(id=>$(id).replaceChildren());const option=document.createElement('option');option.value='';option.textContent='Choose a friend';$('challengeFriend').append(option);$('gameServiceStatus').textContent='';$('deleteAccountSettings').hidden=true;$('deleteEmail').value='';$('deletePassword').value='';$('deleteConfirm').value='';$('deletionRequestStatus').replaceChildren();$('cancelDeletionButton').hidden=true;ownDeletionRequest=null;}
 async function loadAccountPreferences(user){
  $('deleteAccountSettings').hidden=!user;$('cameraAutoStart').checked=homeCameraAutoStart;$('activityOptIn').checked=allowAccountActivity;if(onboardingUser&&onboardingUser!==user?.id)resetSocialState();onboardingUser=user?.id||null;$('deleteAccountSettings').hidden=!user;
  if(!user){resetSocialState();return;}
@@ -1021,6 +1022,7 @@ async function loadAccountPreferences(user){
  notificationsSeenAt=prefs?.notifications_seen_at||null;$('deleteEmail').value=user.email||'';
  if(!prefs)check(await supabaseClient.from('account_preferences').upsert({user_id:user.id},{onConflict:'user_id',ignoreDuplicates:true}));
  void action(()=>loadNotifications(false));
+ await loadOwnDeletionRequest();
  if(!prefs?.onboarding_done&&currentScreen==='home'&&lastGuideUser!==user.id){lastGuideUser=user.id;showScreen('guide');}
 }
 async function finishGuide(){const session=check(await supabaseClient.auth.getSession()).session;if(session){check(await supabaseClient.from('account_preferences').upsert({user_id:session.user.id},{onConflict:'user_id',ignoreDuplicates:true}));check(await supabaseClient.from('account_preferences').update({onboarding_done:true}).eq('user_id',session.user.id));}showScreen('home');}
@@ -1054,6 +1056,8 @@ async function loadNotifications(markSeen=false){
    if(item.kind==='peek'){text='Your peek at '+name+'’s main wall is open until '+new Date(item.expires_at).toLocaleString();buttons=[['Peek',()=>openPeek(item.actor_id,name)]];}
    if(item.kind==='challenge'){text=name+' sent you a game challenge.';buttons=[['View challenge',()=>showScreen('games')]];}
    if(item.kind==='result'){text=name+' responded to your game challenge.';buttons=[['View result',()=>showScreen('games')]];}
+   if(item.kind==='deletion'){text=name+' requested account deletion. An account and photo review is required.';buttons=[['Review request',()=>showScreen('admin')]];}
+   if(item.kind==='deletion_update'){text='Your account deletion request has been reviewed.';buttons=[['View deletion status',()=>showScreen('profile')]];}
    row(list,text,buttons);
   });
  }
@@ -1107,11 +1111,10 @@ async function sendGameChallenge(){
 async function deleteMyAccount(){
  const user=await requireUser(),email=$('deleteEmail').value.trim(),password=$('deletePassword').value,confirmation=$('deleteConfirm').value;
  if(email.toLowerCase()!==user.email.toLowerCase()||confirmation!=='DELETE'||!password)throw new Error('Enter your account email, password and DELETE.');
- if(!confirm('Permanently delete your Narwhall account and uploaded photos, including shared copies? This cannot be undone.'))return;
+ if(!confirm('Request account deletion? Nothing is deleted now. There is a minimum 30-day wait and an admin must review your account and photos. You can cancel until final deletion starts.'))return;
  const auth=await supabaseClient.auth.signInWithPassword({email,password});$('deletePassword').value='';check(auth);
- await mediaRequest('/account-delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({confirmation,account_email:email})});
- setCameraAutoStart(false);homeCameraWanted=false;stopHomeCamera();photoSelection++;selectedPhoto=null;if(selectedPhotoUrl)URL.revokeObjectURL(selectedPhotoUrl);selectedPhotoUrl=null;
- await supabaseClient.auth.signOut({scope:'local'});resetSocialState();clearCommunity();clearAdminReview();clearPeek();clearImages($('wall'));$('wall').replaceChildren();showScreen('home');notice('Your account and uploaded photos have been deleted.');
+ check(await supabaseClient.rpc('request_account_deletion',{confirmation,account_email:email}));
+ $('deleteConfirm').value='';await loadOwnDeletionRequest();notice('Deletion requested. Your account stays available during the 30-day wait and admin review.');
 }
 document.addEventListener('DOMContentLoaded',()=>{
  $('shareFriend').addEventListener('change',()=>updateCaptureAudience(captureScope));
@@ -1119,3 +1122,59 @@ document.addEventListener('DOMContentLoaded',()=>{
  supabaseClient?.auth.onAuthStateChange((event,session)=>{setTimeout(()=>{if(event==='SIGNED_OUT')resetSocialState();else if(event==='SIGNED_IN'&&session?.user)action(()=>loadAccountPreferences(session.user));},0);});
  setInterval(()=>{if(!document.hidden)action(()=>loadNotifications(false));},60000);
 });
+
+
+let ownDeletionRequest=null,deletionQueuePage=0,deletionQueueGeneration=0;
+async function loadOwnDeletionRequest(){
+ const generation=socialGeneration,session=check(await supabaseClient.auth.getSession()).session;
+ if(!session)return;
+ const request=check(await supabaseClient.from('account_deletion_requests').select('id,requested_at,delete_after,status,reviewed_at,review_notes,processing_started_at').eq('user_id',session.user.id).order('requested_at',{ascending:false}).limit(1).maybeSingle());
+ if(generation!==socialGeneration)return;ownDeletionRequest=request;
+ const active=request&&['requested','approved','processing'].includes(request.status);
+ $('deleteAccountForm').hidden=!!active;$('cancelDeletionButton').hidden=!request||!['requested','approved'].includes(request.status);
+ const box=$('deletionRequestStatus');box.replaceChildren();if(!request)return;
+ const text=document.createElement('p');
+ text.textContent=request.status==='requested'?'Request received. Earliest deletion date: '+new Date(request.delete_after).toLocaleString()+'. Waiting for admin account/photo review.':request.status==='approved'?'Admin review approved. Earliest deletion date: '+new Date(request.delete_after).toLocaleString()+'. An admin must complete deletion after the wait. You may still cancel before final deletion starts.':request.status==='processing'?'Final deletion is now in progress. New photo uploads are paused, and this request can no longer be cancelled.':request.status==='cancelled'?'Your deletion request was cancelled. Your account and photos are still available.':request.status==='declined'?'The admin did not approve this deletion request. Your account is still available.':'This request has been completed.';
+ box.append(text);if(request.review_notes){const notes=document.createElement('p');notes.textContent='Admin note: '+request.review_notes;box.append(notes);}
+}
+async function cancelMyDeletion(){
+ if(!ownDeletionRequest)throw new Error('No deletion request found.');
+ check(await supabaseClient.rpc('cancel_account_deletion',{p_request:ownDeletionRequest.id}));
+ await loadOwnDeletionRequest();notice('Deletion request cancelled. Your account and photos are kept.');
+}
+async function loadDeletionReviewQueue(delta=0,reset=false){
+ if(currentScreen!=='admin')return;const generation=++deletionQueueGeneration;
+ if(reset)deletionQueuePage=0;else deletionQueuePage=Math.max(0,deletionQueuePage+delta);
+ const rows=check(await supabaseClient.rpc('admin_deletion_queue',{p_page:deletionQueuePage}));
+ if(generation!==deletionQueueGeneration||currentScreen!=='admin')return;
+ const list=$('adminDeletionList');list.replaceChildren();if(!rows.length)empty(list,'No active account deletion requests on this page.');
+ $('deletionQueuePrevious').hidden=deletionQueuePage===0;$('deletionQueueNext').hidden=rows.length<25;
+ rows.forEach(request=>{
+  const card=document.createElement('article');card.className='admin-account';
+  const name=document.createElement('strong');name.textContent='@'+(request.username||'Member')+' · '+request.email;
+  const summary=document.createElement('p');summary.textContent='Requested '+new Date(request.requested_at).toLocaleString()+' · earliest deletion '+new Date(request.delete_after).toLocaleString()+' · '+request.status;
+  card.append(name,summary);
+  const wallButtons=document.createElement('div');wallButtons.className='admin-pages';
+  [['main','Review main wall',request.main_photo_count],['private','Review locked wall',request.private_photo_count]].forEach(([scope,label,count])=>{const button=document.createElement('button');button.textContent=label+' · '+count;button.onclick=()=>action(async()=>{adminWall={userId:request.user_id,scope,name:request.username||'Member'};await loadAdminWall(true);$('adminReview').scrollIntoView({block:'nearest'});},button);wallButtons.append(button);});card.append(wallButtons);
+  const reviewedLabel=document.createElement('label');reviewedLabel.className='setting-check';const reviewed=document.createElement('input');reviewed.type='checkbox';reviewed.checked=request.photos_reviewed;const labelText=document.createElement('span');labelText.textContent='I reviewed this account and its main/locked-wall photos.';reviewedLabel.append(reviewed,labelText);card.append(reviewedLabel);
+  const notes=document.createElement('textarea');notes.maxLength=500;notes.rows=2;notes.placeholder='Review note (visible to the person)';notes.setAttribute('aria-label','Review note for '+(request.username||'account'));notes.value=request.review_notes||'';card.append(notes);
+  if(request.status!=='processing'){
+   const approve=document.createElement('button');approve.textContent=request.status==='approved'?'Update approval':'Approve after photo review';approve.onclick=()=>action(async()=>{if(!reviewed.checked)throw new Error('Review the account and photos, then tick the review confirmation.');check(await supabaseClient.rpc('review_account_deletion',{p_request:request.id,p_approve:true,p_photos_reviewed:true,p_notes:notes.value.trim()}));notice('Review approved. The 30-day wait still applies.');await loadDeletionReviewQueue(0);},approve);
+   const decline=document.createElement('button');decline.textContent='Do not approve';decline.onclick=()=>action(async()=>{check(await supabaseClient.rpc('review_account_deletion',{p_request:request.id,p_approve:false,p_photos_reviewed:reviewed.checked,p_notes:notes.value.trim()}));notice('Deletion was not approved. No photos or account data were deleted.');await loadDeletionReviewQueue(0);},decline);card.append(approve,decline);
+  }else{reviewed.disabled=true;notes.disabled=true;}
+  if(request.status==='approved'||request.status==='processing'){
+   const remove=document.createElement('button');remove.textContent=request.status==='processing'?'Resume final deletion':'Complete permanent deletion';remove.disabled=Date.parse(request.delete_after)>Date.now();remove.onclick=()=>action(()=>completeReviewedDeletion(request),remove);card.append(remove);
+   if(remove.disabled){const waiting=document.createElement('p');waiting.textContent='Final deletion is blocked until '+new Date(request.delete_after).toLocaleString()+'.';card.append(waiting);}
+  }
+  list.append(card);
+ });
+}
+async function completeReviewedDeletion(request){
+ if(Date.parse(request.delete_after)>Date.now())throw new Error('The full 30-day waiting period has not passed.');
+ const admin=await requireUser(),password=$('adminDeletionPassword').value;if(!password)throw new Error('Enter your admin password below the review queue.');
+ const confirmation=prompt('Type DELETE to permanently remove '+request.email+' and their uploaded photos, including shared copies. This cannot be undone.');if(confirmation!=='DELETE')return;
+ const auth=await supabaseClient.auth.signInWithPassword({email:admin.email,password});$('adminDeletionPassword').value='';check(auth);
+ await mediaRequest('/admin-account-delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({request_id:request.id,confirmation})});
+ if(request.user_id===admin.id){setCameraAutoStart(false);homeCameraWanted=false;stopHomeCamera();await supabaseClient.auth.signOut({scope:'local'});resetSocialState();clearAdminReview();clearPeek();clearCommunity();showScreen('home');notice('Your reviewed account deletion has been completed.');return;}
+ clearAdminReview();await loadAdminAccounts();await loadDeletionReviewQueue(0,true);notice('Reviewed account and uploaded photos permanently deleted.');
+}

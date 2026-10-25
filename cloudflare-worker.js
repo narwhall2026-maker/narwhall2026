@@ -27,29 +27,32 @@ async function handle(request,env,ctx) {
  const token=request.headers.get('Authorization');
  if(!token?.startsWith('Bearer ')) return json({error:'Please log in first.'},401);
  const headers={apikey:env.SUPABASE_KEY,Authorization:token,'Content-Type':'application/json'};
- if(url.pathname==='/account-delete' && request.method==='POST') {
+ if(url.pathname==='/account-delete' && request.method==='POST')return json({error:'Immediate deletion is no longer available. Refresh Narwhall and request deletion from Profile. There is a 30-day wait and admin review.'},410);
+ if(url.pathname==='/admin-account-delete' && request.method==='POST') {
   const auth=await fetch(`${env.SUPABASE_URL}/auth/v1/user`,{headers});
-  if(!auth.ok)return json({error:'Please sign in again before deleting your account.'},401);
-  const user=await auth.json();if(!UUID.test(user.id))return json({error:'Invalid account.'},401);
+  if(!auth.ok)return json({error:'Please sign in again.'},401);
+  const admin=await auth.json();if(!UUID.test(admin.id))return json({error:'Invalid account.'},401);
+  const role=await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/is_narwhall_admin`,{method:'POST',headers,body:'{}'});
+  if(!role.ok || await role.json()!==true)return json({error:'Admin access required.'},403);
   if(Number(request.headers.get('Content-Length'))>2048)return json({error:'Invalid confirmation.'},400);
   const reader=request.body?.getReader();if(!reader)return json({error:'Confirmation required.'},400);
   let total=0,parts=[];while(true){const {done,value}=await reader.read();if(done)break;total+=value.byteLength;if(total>2048){await reader.cancel();return json({error:'Invalid confirmation.'},400);}parts.push(value);}
   const bytes=new Uint8Array(total);let index=0;for(const part of parts){bytes.set(part,index);index+=part.byteLength;}
   let data;try{data=JSON.parse(new TextDecoder().decode(bytes));}catch{return json({error:'Invalid confirmation.'},400);}
-  if(data.confirmation!=='DELETE'||typeof data.account_email!=='string'||data.account_email.trim().toLowerCase()!==user.email?.toLowerCase())return json({error:'Confirm DELETE and your account email.'},403);
-  const body=JSON.stringify({confirmation:'DELETE',account_email:data.account_email});
-  const ready=await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/account_deletion_ready`,{method:'POST',headers,body});
-  if(!ready.ok || await ready.json()!==true)return json({error:'Sign in again with your password before deleting your account.'},403);
+  if(data.confirmation!=='DELETE'||!UUID.test(data.request_id||''))return json({error:'Confirm DELETE and a valid review request.'},403);
+  const start=await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/begin_reviewed_deletion`,{method:'POST',headers,body:JSON.stringify({p_request:data.request_id,confirmation:'DELETE'})});
+  if(!start.ok)return json({error:'Deletion is blocked. Confirm your admin password, complete the photo review, and wait the full 30 days.'},403);
+  const permit=await start.json(),owner=permit.user_id;
+  if(!UUID.test(owner||'')||!UUID.test(permit.token||''))return json({error:'Invalid deletion authorisation.'},503);
   let empty=false;
   for(let batch=0;batch<20;batch++){
-   const listed=await env.PHOTOS.list({prefix:user.id+'/',limit:100});
-   if(!listed.objects.length){empty=true;break;}
-   const keys=listed.objects.map(o=>o.key);if(keys.some(key=>!key.startsWith(user.id+'/')))return json({error:'Photo cleanup could not be completed.'},503);
+   const listed=await env.PHOTOS.list({prefix:owner+'/',limit:100});if(!listed.objects.length){empty=true;break;}
+   const keys=listed.objects.map(o=>o.key);if(keys.some(key=>!key.startsWith(owner+'/')))return json({error:'Photo cleanup could not be completed.'},503);
    await env.PHOTOS.delete(keys);
   }
-  if(!empty)return json({error:'Photo cleanup is in progress. Try deleting again to finish.'},503);
-  const removed=await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/delete_own_account`,{method:'POST',headers,body});
-  if(!removed.ok || await removed.json()!==true)return json({error:'Photos were removed, but account deletion needs another attempt. Please try again.'},503);
+  if(!empty)return json({error:'Photo cleanup is in progress. Resume final deletion to finish.'},503);
+  const removed=await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/finish_reviewed_deletion`,{method:'POST',headers,body:JSON.stringify({p_request:data.request_id,p_token:permit.token})});
+  if(!removed.ok || await removed.json()!==true)return json({error:'Photo cleanup started, but the account still needs finalisation. Resume final deletion to finish.'},503);
   return json({deleted:true});
  }
  if(url.pathname==='/upload' && request.method==='PUT') {
@@ -57,6 +60,8 @@ async function handle(request,env,ctx) {
   if(!auth.ok) return json({error:'Your session expired. Please log in again.'},401);
   const user=await auth.json();
   if(!UUID.test(user.id)) return json({error:'Invalid user'},401);
+  const available=await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/account_available`,{method:'POST',headers,body:'{}'});
+  if(!available.ok || await available.json()!==true)return json({error:'This account is being deleted. New uploads are paused.'},403);
   const existing=await env.PHOTOS.list({prefix:user.id+'/',limit:100});
   if(existing.objects.length>=100 || existing.truncated) return json({error:'Your wall has reached its 100-photo limit.'},429);
   const length=Number(request.headers.get('Content-Length'));
@@ -74,6 +79,8 @@ async function handle(request,env,ctx) {
   else return json({error:'Use a JPEG, PNG, or WebP photo.'},415);
   const key=`${user.id}/${crypto.randomUUID()}.${ext}`;
   await env.PHOTOS.put(key,bytes,{httpMetadata:{contentType:type}});
+  const stillAvailable=await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/account_available`,{method:'POST',headers,body:'{}'});
+  if(!stillAvailable.ok || await stillAvailable.json()!==true){await env.PHOTOS.delete(key);return json({error:'This account is being deleted. The upload was cancelled.'},403);}
   return json({key,bytes:size});
  }
  if(url.pathname.startsWith('/photo/') && request.method==='GET') {
