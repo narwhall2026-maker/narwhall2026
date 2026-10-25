@@ -479,7 +479,7 @@ header {gap:10px;}
 #deleteAccountForm[hidden],#cancelDeletionButton[hidden],#deletionQueuePrevious[hidden],#deletionQueueNext[hidden] {display:none;}
 
 /* Narwhall app shell: one navigation system, consistent surfaces and controls. */
-:root {--app-bg:#101219;--app-surface:#1b1e28;--app-line:#323644;--app-muted:#a7a9ba;--app-accent:#bce8db;--app-ink:#f4f0e9;--dock-space:100px;}
+:root {--app-bg:#281637;--app-surface:#3b2450;--app-line:#6c4d83;--app-muted:#d0bddf;--app-accent:#bce8db;--app-ink:#f4f0e9;--dock-space:100px;}
 html,body {background:var(--app-bg);color:var(--app-ink);}
 body {padding-bottom:calc(var(--dock-space) + env(safe-area-inset-bottom,0px));}
 html {scroll-padding-bottom:calc(var(--dock-space) + env(safe-area-inset-bottom,0px));}
@@ -494,7 +494,7 @@ html {scroll-padding-bottom:calc(var(--dock-space) + env(safe-area-inset-bottom,
 .header-icon[aria-pressed="true"] {border-color:var(--app-accent);color:var(--app-accent);}
 .app-header .intro {position:static;flex-basis:100%;margin:0;max-width:none;display:flex;justify-content:flex-end;}
 .app-header .moments-sticker {margin:0 4px 0 0;transform:rotate(-5deg);font-size:14px;padding:8px 15px;}
-#primaryNavigation {position:fixed;left:50%;right:auto;bottom:0;transform:translateX(-50%);width:min(100%,800px);height:auto;min-height:80px;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;align-items:center;padding:9px 12px calc(9px + env(safe-area-inset-bottom,0px));border:1px solid #ffffff16;border-bottom:0;border-radius:26px 26px 0 0;background:#191c27f5;box-shadow:0 -8px 35px #0004;backdrop-filter:blur(18px);z-index:90;}
+#primaryNavigation {position:fixed;left:50%;right:auto;bottom:0;transform:translateX(-50%);width:min(100%,800px);height:auto;min-height:80px;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;align-items:center;padding:9px 12px calc(9px + env(safe-area-inset-bottom,0px));border:1px solid #ffffff16;border-bottom:0;border-radius:26px 26px 0 0;background:#3b2450f5;box-shadow:0 -8px 35px #0004;backdrop-filter:blur(18px);z-index:90;}
 #primaryNavigation button {display:flex;flex-direction:column;justify-content:center;align-items:center;gap:6px;width:100%;min-width:0;min-height:58px;padding:7px 2px;margin:0;border:0;border-radius:16px;background:transparent;color:#a5a9bc;font:inherit;font-size:10px;line-height:1.2;touch-action:manipulation;}
 #primaryNavigation button.active {color:var(--app-accent);background:#bce8db12;}
 #primaryNavigation #cameraHomeButton {min-height:60px;color:#132a26;background:var(--app-accent);box-shadow:0 3px 15px #bce8db14;}
@@ -505,7 +505,7 @@ html {scroll-padding-bottom:calc(var(--dock-space) + env(safe-area-inset-bottom,
 .camera-home-heading {margin:12px 0 18px;justify-content:center;text-align:center;}
 .camera-home-heading p {font-size:9px;letter-spacing:2.2px;color:var(--app-accent);}
 .camera-home-heading h1 {font-size:36px;color:var(--app-ink);}
-.home-viewfinder {min-height:200px;max-height:none;aspect-ratio:4/4.4;border-radius:28px;border-color:#434555;background:radial-gradient(ellipse at 75% 10%,#35414d,transparent 65%),radial-gradient(ellipse at 10% 100%,#234a46,transparent 65%),#171c29;box-shadow:0 15px 40px #0003;}
+.home-viewfinder {min-height:200px;max-height:none;aspect-ratio:4/4.4;border-radius:28px;border-color:#434555;background:radial-gradient(ellipse at 75% 10%,#8152a1,transparent 65%),radial-gradient(ellipse at 10% 100%,#623a79,transparent 65%),#3e254f;box-shadow:0 15px 40px #0003;}
 .home-camera-placeholder>span {color:var(--app-accent);font-size:58px;}
 .home-camera-placeholder h2 {font-size:34px;}
 .home-camera-placeholder button {background:var(--app-accent);border-color:var(--app-accent);color:#152c27;}
@@ -527,7 +527,7 @@ html {scroll-padding-bottom:calc(var(--dock-space) + env(safe-area-inset-bottom,
 .home-hat-control>span {max-width:140px;}
 .home-camera-footnote {font-size:18px;margin:16px 0;color:var(--app-muted);}
 #wallControls {position:relative;}
-.wall-tabs {background:#1b1e28;padding:5px;border:1px solid var(--app-line);border-radius:18px;gap:5px;margin:0 auto 12px;max-width:500px;}
+.wall-tabs {background:var(--app-surface);padding:5px;border:1px solid var(--app-line);border-radius:18px;gap:5px;margin:0 auto 12px;max-width:500px;}
 .wall-tabs button {flex:1;min-height:44px;padding:10px 12px;border:0;border-radius:13px;font-size:13px;color:#b8bbca;}
 .wall-tabs button[aria-pressed="true"] {background:var(--app-accent);color:#142b26;box-shadow:0 3px 10px #0002;}
 .wall-tools {display:block;max-width:500px;margin:0 auto 16px;}
@@ -572,20 +572,20 @@ body:not([data-screen="home"]):not([data-screen="wall"]) .app {padding-bottom:0;
 #gamesScreen label {display:block;margin:18px 0 8px;font-size:12px;color:var(--app-muted);}
 #gamesScreen select {width:100%;padding:12px;border:1px solid var(--app-line);border-radius:14px;background:var(--app-surface);color:var(--app-ink);}
 #gamesScreen h3 {font-size:16px;margin-top:26px;}
-.pong-lobby {padding:22px;margin:24px 0;background:linear-gradient(140deg,#233933,#1b2030);border:1px solid #bce8db40;border-radius:24px;}
+.pong-lobby {padding:22px;margin:24px 0;background:linear-gradient(140deg,#654080,#3b2450);border:1px solid #bce8db40;border-radius:24px;}
 .pong-feature-tag {font-size:10px;letter-spacing:1.5px;color:var(--app-accent);}
 #gamesScreen .pong-lobby h3 {margin:12px 0 8px;font-size:24px;letter-spacing:-.6px;}
 .pong-lobby>p {font-size:12px;line-height:1.8;}
 .pong-lobby-actions {display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
 .feature-screen #pongInviteButton,.feature-screen #pongReadyButton {background:var(--app-accent);color:#142b26;border:0;font-weight:600;}
-#pongInvitations>div {padding:14px;background:#11182299;border:1px solid #ffffff1c;border-radius:16px;margin-top:10px;}
+#pongInvitations>div {padding:14px;background:#281637aa;border:1px solid #ffffff1c;border-radius:16px;margin-top:10px;}
 #pongInvitations p {font-size:12px;}
 #pongScreen {max-width:850px;}
 .pong-match-heading {display:flex;align-items:center;justify-content:space-between;gap:12px;}
 .pong-match-heading>button {flex-shrink:0;}
 #pongPlayers {text-align:center;font-size:12px;color:var(--app-muted);}
 .pong-score {font-size:36px;font-weight:600;text-align:center;letter-spacing:10px;margin:8px 0 14px;}
-#pongCanvas {display:block;width:100%;height:auto;aspect-ratio:8/5;border:1px solid #46515b;border-radius:20px;touch-action:none;background:#131b25;}
+#pongCanvas {display:block;width:100%;height:auto;aspect-ratio:8/5;border:1px solid #46515b;border-radius:20px;touch-action:none;background:#321c45;}
 #pongMatchStatus {min-height:45px;text-align:center;font-size:13px;}
 .pong-match-actions {display:flex;justify-content:center;gap:12px;align-items:center;}
 .feature-screen .pong-match-actions button {min-height:60px;min-width:64px;margin:0;font-size:24px;touch-action:none;user-select:none;}
@@ -593,3 +593,14 @@ body:not([data-screen="home"]):not([data-screen="wall"]) .app {padding-bottom:0;
 #pongScreen>.privacy-hint {text-align:center;font-size:11px;}
 #pongReconnectButton {display:block;margin:12px auto;}
 @media(max-width:400px){.pong-lobby {padding:16px;}.pong-match-heading {flex-wrap:wrap;}.feature-screen .pong-match-actions #pongReadyButton {min-width:140px;}.pong-match-actions {gap:8px;}}
+
+/* Purple application surfaces; personalised photo-wall colours remain selectable. */
+.capture-box,#signupScreen,#loginScreen,#resetScreen {background:var(--app-bg);border-color:var(--app-line);}
+#profileScreen input:not([type="checkbox"]),#signupScreen input,#loginScreen input,#resetScreen input,#captureDestination,#shareFriend,.feature-screen input,.feature-screen select,#adminScreen input,#adminScreen textarea {background:#301c42;border-color:var(--app-line);color:var(--app-ink);}
+.feature-screen button:not(.feature-primary):not(#pongInviteButton):not(#pongReadyButton),.account-settings button,.account-links button,#profileScreen button:not(#saveUsernameButton),#homeNarwhalHat,.home-filter-controls button {background:#432b58;border-color:var(--app-line);color:var(--app-ink);}
+.home-filter-controls button[aria-pressed="true"],#homeNarwhalHat[aria-pressed="true"] {background:var(--app-accent);border-color:var(--app-accent);color:#142b26;}
+#profileScreen .danger-zone button {background:#79334f;color:#fff;}
+#primaryNavigation button {color:#d4c2e2;}
+#primaryNavigation button.active {color:var(--app-accent);}
+.wall-tabs button {color:#dac8e6;}
+.wall-tabs button[aria-pressed="true"] {color:#142b26;}
