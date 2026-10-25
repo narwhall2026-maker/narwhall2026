@@ -564,3 +564,11 @@ body:not([data-screen="home"]):not([data-screen="wall"]) .app {padding-bottom:0;
 @media(max-width:600px){.app {padding:14px 14px 0;} .app-header {margin-bottom:16px;gap:8px;} .app-header .logo {font-size:30px;} .camera-home-heading h1 {font-size:32px;} #communityScreen,#friendsScreen,#profileScreen,#peekScreen,#adminScreen,.feature-screen {padding-left:14px;padding-right:14px;} #primaryNavigation {gap:2px;padding-left:6px;padding-right:6px;} .home-viewfinder {aspect-ratio:1/1;} }
 @media(max-width:360px){#primaryNavigation button {font-size:9px;} .camera-home-heading h1 {font-size:29px;} .home-camera-placeholder {padding:15px;} .home-camera-placeholder h2 {font-size:30px;} .home-filter-controls {gap:4px;} .home-filter-controls button {padding:10px 8px;}}
 @media(prefers-reduced-motion:no-preference){button {transition:background-color .16s,color .16s,transform .12s;} }
+/* Reset positions from the previous header-based navigation. */
+#primaryNavigation button {grid-column:auto;grid-row:auto;justify-self:stretch;}
+#profileScreen #saveUsernameButton {background:var(--app-accent);color:#142b26;}
+.game-launch {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:20px 0;}
+.feature-screen .game-launch button {min-height:76px;width:100%;margin:0;border-radius:18px;background:var(--app-surface);border-color:var(--app-line);font-weight:600;}
+#gamesScreen label {display:block;margin:18px 0 8px;font-size:12px;color:var(--app-muted);}
+#gamesScreen select {width:100%;padding:12px;border:1px solid var(--app-line);border-radius:14px;background:var(--app-surface);color:var(--app-ink);}
+#gamesScreen h3 {font-size:16px;margin-top:26px;}
