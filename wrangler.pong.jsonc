@@ -1,0 +1,12 @@
+{
+  "name": "narwhall-live",
+  "main": "live-pong-worker.js",
+  "compatibility_date": "2026-10-25",
+  "vars": {
+    "SUPABASE_URL": "https://vjugsidfdovuwtxgcvrz.supabase.co",
+    "SUPABASE_KEY": "sb_publishable_Q_HeljHf6jSNZm7nONcazw_JIlEZRVS"
+  },
+  "durable_objects": {"bindings": [{"name": "PONG_ROOMS", "class_name": "PongRoom"}]},
+  "migrations": [{"tag": "v1", "new_sqlite_classes": ["PongRoom"]}],
+  "observability": {"enabled": true, "head_sampling_rate": 0.1, "logs": {"enabled": true, "invocation_logs": false}, "redact_query_string": true}
+}

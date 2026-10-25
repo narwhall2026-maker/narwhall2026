@@ -40,6 +40,8 @@ function clearPeek() {
   clearImages($("peekContent"));$("peekContent").replaceChildren();delete $("peekContent").dataset.signature;
 }
 function showScreen(screen) {
+  if(typeof stopPongLobby==='function'&&screen!=='games')stopPongLobby();
+  if(typeof endPongSession==='function'&&screen!=='pong')endPongSession();
   if(screen!=="home")stopHomeCamera();
   if($("capturePanel").classList.contains("open"))closeCapture(false);
   closeWallSnake();closeWallBounce();
@@ -53,13 +55,13 @@ function showScreen(screen) {
   $("wallBrowseControls").hidden=screen!=="wall";
   $("privateControls").hidden=screen!=="wall" || currentWall!=="private";
   $("moreMemoriesButton").hidden=true;
-  ["homeScreen","inboxScreen","gamesScreen","guideScreen","rulesScreen","wall","adminScreen","communityScreen","friendsScreen","profileScreen","peekScreen","signupScreen","loginScreen","resetScreen"].forEach(id=>{if($(id)) $(id).style.display="none";});
+  ["pongScreen","homeScreen","inboxScreen","gamesScreen","guideScreen","rulesScreen","wall","adminScreen","communityScreen","friendsScreen","profileScreen","peekScreen","signupScreen","loginScreen","resetScreen"].forEach(id=>{if($(id)) $(id).style.display="none";});
   const target=screen==="wall"?"wall":screen+"Screen"; if($(target)) $(target).style.display="block";
   $("intro").hidden=screen!=="wall"; $("captureButton").hidden=screen!=="wall";
   document.querySelectorAll("[data-screen]").forEach(b=>b.classList.toggle("active",b.dataset.screen===screen));
   $("communityButton").setAttribute("aria-pressed",screen==="community");
   document.querySelectorAll('#primaryNavigation [data-screen]').forEach(button=>{
-    const selected=button.dataset.screen===screen || (screen==='peek' && button.dataset.screen==='friends');
+    const selected=button.dataset.screen===screen || (screen==='peek' && button.dataset.screen==='friends') || (screen==='pong' && button.dataset.screen==='games');
     button.classList.toggle('active',selected);
     if(selected)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current');
   });
@@ -68,7 +70,7 @@ function showScreen(screen) {
   if(screenChanged)window.scrollTo?.({top:0,behavior:'instant'});
   if(screen==="home")resumeHomeCamera();
   if(screen==="inbox")action(()=>loadNotifications(true));
-  if(screen==="games")action(loadGameHub);
+  if(screen==="games"){action(loadGameHub);if(typeof startPongLobby==='function')startPongLobby();}
   if(screen==="wall") action(async()=>{await loadMoments();if(currentWall==="private")await loadPrivateAccess();});
   if(screen==="friends") action(async()=>{await Promise.all([loadFriendRequests(),loadFriends(),loadSharedMomentRequests(),loadPrivateInvites()]);});
   if(screen==="profile") action(loadProfile);
@@ -1020,7 +1022,7 @@ let homeCameraAutoStart=browserSetting('narwhall-camera-auto',true),allowAccount
 function setCameraAutoStart(value){homeCameraAutoStart=!!value;try{localStorage.setItem('narwhall-camera-auto',String(homeCameraAutoStart));}catch{}$('cameraAutoStart').checked=homeCameraAutoStart;}
 function stopCameraFromSettings(){setCameraAutoStart(false);homeCameraWanted=false;stopHomeCamera();notice('Camera stopped. You can still enable it manually on the camera screen.');}
 function setActivityOptIn(value){allowAccountActivity=!!value;try{localStorage.setItem('narwhall-activity',String(allowAccountActivity));}catch{}notice(value?'Basic activity reporting enabled on this browser.':'New activity reporting stopped on this browser.');}
-function resetSocialState(){photoSelection++;selectedPhoto=null;if(selectedPhotoUrl)URL.revokeObjectURL(selectedPhotoUrl);selectedPhotoUrl=null;$('momentPhoto').value='';$('momentCaption').value='';updateWordCount();updateCapturePreview();closeCapture(false);socialGeneration++;notificationsSeenAt=null;onboardingUser=null;activeGameChallenge=null;$('inboxBadge').hidden=true;['notificationList','gameLeaderboard','gameChallengeList','challengeFriend'].forEach(id=>$(id).replaceChildren());const option=document.createElement('option');option.value='';option.textContent='Choose a friend';$('challengeFriend').append(option);$('gameServiceStatus').textContent='';$('deleteAccountSettings').hidden=true;$('deleteEmail').value='';$('deletePassword').value='';$('deleteConfirm').value='';$('deletionRequestStatus').replaceChildren();$('cancelDeletionButton').hidden=true;ownDeletionRequest=null;}
+function resetSocialState(){if(typeof resetPongState==='function')resetPongState();photoSelection++;selectedPhoto=null;if(selectedPhotoUrl)URL.revokeObjectURL(selectedPhotoUrl);selectedPhotoUrl=null;$('momentPhoto').value='';$('momentCaption').value='';updateWordCount();updateCapturePreview();closeCapture(false);socialGeneration++;notificationsSeenAt=null;onboardingUser=null;activeGameChallenge=null;$('inboxBadge').hidden=true;['notificationList','gameLeaderboard','gameChallengeList','challengeFriend'].forEach(id=>$(id).replaceChildren());const option=document.createElement('option');option.value='';option.textContent='Choose a friend';$('challengeFriend').append(option);$('gameServiceStatus').textContent='';$('deleteAccountSettings').hidden=true;$('deleteEmail').value='';$('deletePassword').value='';$('deleteConfirm').value='';$('deletionRequestStatus').replaceChildren();$('cancelDeletionButton').hidden=true;ownDeletionRequest=null;}
 async function loadAccountPreferences(user){
  $('deleteAccountSettings').hidden=!user;$('cameraAutoStart').checked=homeCameraAutoStart;$('activityOptIn').checked=allowAccountActivity;if(onboardingUser&&onboardingUser!==user?.id)resetSocialState();onboardingUser=user?.id||null;$('deleteAccountSettings').hidden=!user;
  if(!user){resetSocialState();return;}
@@ -1062,6 +1064,7 @@ async function loadNotifications(markSeen=false){
    if(item.kind==='share'){text=name+' shared a photo for your wall.';buttons=[['Accept & pin',()=>after(()=>replyShared(item.reference_id,true))],['Decline',()=>after(()=>replyShared(item.reference_id,false))]];}
    if(item.kind==='locked'){text=name+' invited you to their locked wall until '+new Date(item.expires_at).toLocaleString();buttons=[['View locked wall',()=>openPrivatePeek(item.actor_id,name)]];}
    if(item.kind==='peek'){text='Your peek at '+name+'’s main wall is open until '+new Date(item.expires_at).toLocaleString();buttons=[['Peek',()=>openPeek(item.actor_id,name)]];}
+   if(item.kind==='pong'){text=name+' has a live Pong invitation for you.';buttons=[['Open live Pong',()=>showScreen('games')]];}
    if(item.kind==='challenge'){text=name+' sent you a game challenge.';buttons=[['View challenge',()=>showScreen('games')]];}
    if(item.kind==='result'){text=name+' responded to your game challenge.';buttons=[['View result',()=>showScreen('games')]];}
    if(item.kind==='deletion'){text=name+' requested account deletion. An account and photo review is required.';buttons=[['Review request',()=>showScreen('admin')]];}
