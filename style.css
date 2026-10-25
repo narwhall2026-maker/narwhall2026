@@ -423,3 +423,13 @@ body[data-screen="home"] header {margin-bottom:0;}
 html {scroll-padding-bottom:24px;}
 #communityScreen,#friendsScreen,#profileScreen,#signupScreen,#loginScreen,#resetScreen,#adminScreen {padding-bottom:calc(24px + env(safe-area-inset-bottom,0px));}
 header {gap:10px;}
+
+#homeEffectsCanvas {position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
+#homeEffectsCanvas[hidden] {display:none;}
+.home-filter-controls {display:flex;justify-content:center;gap:6px;margin:12px 0 10px;}
+.home-filter-controls button,#homeNarwhalHat {min-height:44px;padding:10px 14px;border:1px solid #61556d;border-radius:22px;background:#191b27;color:#e4d9ee;font:inherit;font-size:12px;cursor:pointer;touch-action:manipulation;}
+.home-filter-controls button[aria-pressed="true"],#homeNarwhalHat[aria-pressed="true"] {background:#eee3d2;color:#29232e;border-color:#eee3d2;}
+.home-hat-control {display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap;}
+.home-hat-control>span {font-size:10px;color:#a99cb8;}
+#homeEffectsStatus {max-width:400px;min-height:18px;text-align:center;font-size:11px;line-height:1.5;color:#ccb9e7;margin:8px auto 0;}
+@media(max-width:360px){.home-filter-controls button {padding:10px 11px;font-size:11px;}}

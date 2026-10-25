@@ -809,7 +809,7 @@ document.addEventListener("DOMContentLoaded",()=>{
 // Camera-first home: local preview only, snapshots enter the existing review-and-pin flow.
 let homeCameraStream=null,homeCameraGeneration=0,homeCameraWanted=false,homeCameraFacing="environment",homeCameraOpening=false,homeCaptureOrigin=false;
 function stopHomeCamera(){
-  homeCameraGeneration++;homeCameraOpening=false;
+  stopHomeEffects();homeCameraGeneration++;homeCameraOpening=false;
   if(homeCameraStream)homeCameraStream.getTracks().forEach(track=>track.stop());
   homeCameraStream=null;const video=$("homeCameraVideo");video.srcObject=null;video.hidden=true;
   $("homeCameraPlaceholder").hidden=false;$("homeCameraLive").hidden=true;$("homeFlipCamera").disabled=true;$("homeEnableCamera").disabled=false;
@@ -828,7 +828,7 @@ async function startHomeCamera(){
     video.classList.toggle("selfie",facing==="user");video.hidden=false;await video.play();
     if(generation!==homeCameraGeneration)return;
     $("homeCameraPlaceholder").hidden=true;$("homeCameraLive").hidden=false;$("homeFlipCamera").disabled=false;
-    $("homeCameraStatus").textContent="Ready when you are. Your photo won’t post until you tap Pin.";
+    $("homeCameraStatus").textContent="Ready when you are. Your photo won’t post until you tap Pin.";startHomeEffects();
     stream.getVideoTracks()[0]?.addEventListener("ended",()=>{if(generation===homeCameraGeneration){stopHomeCamera();$("homeCameraStatus").textContent="Camera stopped. Tap Enable camera to start again, or use Gallery.";}},{once:true});
   }catch(error){
     if(generation!==homeCameraGeneration)return;stopHomeCamera();
@@ -853,8 +853,7 @@ async function takeHomePhoto(){
   const scale=Math.min(1,1600/Math.max(width,height));
   const canvas=document.createElement("canvas");canvas.width=Math.max(1,Math.round(width*scale));canvas.height=Math.max(1,Math.round(height*scale));
   const ctx=canvas.getContext("2d");if(!ctx)throw new Error("Couldn’t capture this photo. Try Gallery instead.");
-  if(video.classList.contains("selfie")){ctx.translate(canvas.width,0);ctx.scale(-1,1);}
-  ctx.drawImage(video,(video.videoWidth-width)/2,(video.videoHeight-height)/2,width,height,0,0,canvas.width,canvas.height);
+  drawHomeFrame(canvas,video,homeColourFilter,homeHatEnabled);
   const blob=await new Promise(resolve=>canvas.toBlob(resolve,"image/jpeg",0.9));
   if(generation!==homeCameraGeneration || currentScreen!=="home")return;
   if(!blob)throw new Error("Couldn’t capture this photo. Try again.");
@@ -869,3 +868,122 @@ document.addEventListener("DOMContentLoaded",()=>{
   document.addEventListener("visibilitychange",()=>{if(document.hidden)stopHomeCamera();else resumeHomeCamera();});
   window.addEventListener("pagehide",stopHomeCamera);window.addEventListener("pageshow",()=>resumeHomeCamera());
 });
+
+
+// The same pixel pipeline renders previews and saved photos, including Safari.
+let homeColourFilter="original",homeHatEnabled=false,homeEffectsFrame=null,homeEffectsLast=0,homeHatTracker=null,homeHatPoses=[],homeHatSeenAt=0;
+function setHomeFilter(filter){
+  if(!["original","vintage","mono"].includes(filter))return;homeColourFilter=filter;
+  document.querySelectorAll("[data-camera-filter]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.cameraFilter===filter)));
+  if(homeCameraStream)startHomeEffects();
+}
+function toggleHomeHat(){
+  homeHatEnabled=!homeHatEnabled;$("homeNarwhalHat").setAttribute("aria-pressed",String(homeHatEnabled));
+  homeHatPoses=[];homeHatSeenAt=0;
+  if(!homeHatEnabled){stopHatTracker();$("homeEffectsStatus").textContent="";}
+  else if(!homeCameraStream)$("homeEffectsStatus").textContent="Enable the camera to try the narwhal hat. It works best with the selfie camera.";
+  if(homeCameraStream)startHomeEffects();
+}
+function colourHomePixels(image,filter){
+  if(filter==="original")return image;
+  const d=image.data,w=image.width,h=image.height;
+  for(let i=0;i<d.length;i+=4){
+    const r=d[i],g=d[i+1],b=d[i+2],lum=.2126*r+.7152*g+.0722*b;
+    if(filter==="mono"){d[i]=d[i+1]=d[i+2]=lum;continue;}
+    // A warm fade, restrained grain and a soft vignette.
+    const pixel=i/4,x=(pixel%w)/w-.5,y=Math.floor(pixel/w)/h-.5;
+    const shade=1-.2*(x*x+y*y),grain=(((pixel*13+17)%11)-5)*.45;
+    d[i]=((r*.78+lum*.22)*.91+24+grain)*shade;
+    d[i+1]=((g*.8+lum*.2)*.85+17+grain)*shade;
+    d[i+2]=((b*.72+lum*.28)*.74+15+grain)*shade;
+  }return image;
+}
+function drawNarwhalHat(ctx,x,y,width,angle){
+  ctx.save();ctx.translate(x,y);ctx.rotate(angle);ctx.scale(width/100,width/100);
+  ctx.shadowColor="#11182770";ctx.shadowBlur=5;ctx.lineJoin="round";ctx.lineWidth=2.5;ctx.strokeStyle="#e7f9ff";
+  // Small blue narwhal, with flukes, a fin and an ivory tusk.
+  ctx.fillStyle="#7dd4ef";ctx.beginPath();ctx.moveTo(-31,7);ctx.bezierCurveTo(-48,10,-51,-2,-49,-13);ctx.lineTo(-39,-5);ctx.lineTo(-32,-15);ctx.bezierCurveTo(-28,-5,-34,0,-31,7);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.ellipse(4,4,34,21,-.12,0,Math.PI*2);ctx.fill();ctx.stroke();
+  ctx.shadowBlur=0;ctx.fillStyle="#dcf5ff";ctx.beginPath();ctx.ellipse(7,12,24,10,0,0,Math.PI);ctx.fill();
+  ctx.fillStyle="#55acd3";ctx.beginPath();ctx.moveTo(-2,10);ctx.quadraticCurveTo(11,27,16,18);ctx.lineTo(9,9);ctx.fill();
+  ctx.fillStyle="#fff1cf";ctx.beginPath();ctx.moveTo(24,-12);ctx.lineTo(39,-42);ctx.lineTo(32,-9);ctx.closePath();ctx.fill();ctx.strokeStyle="#d4b98a";ctx.lineWidth=1;ctx.stroke();
+  ctx.fillStyle="#123952";ctx.beginPath();ctx.arc(23,0,2.5,0,Math.PI*2);ctx.fill();ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(23.7,-.8,.8,0,Math.PI*2);ctx.fill();
+  ctx.restore();
+}
+function drawHomeFrame(canvas,video,filter,hat){
+  const ctx=canvas.getContext("2d",{willReadFrequently:filter!=="original"});if(!ctx)return;
+  const ratio=canvas.width/canvas.height,sw=Math.min(video.videoWidth,video.videoHeight*ratio),sh=sw/ratio;
+  const sx=(video.videoWidth-sw)/2,sy=(video.videoHeight-sh)/2,mirror=video.classList.contains("selfie");
+  ctx.save();if(mirror){ctx.translate(canvas.width,0);ctx.scale(-1,1);}
+  ctx.drawImage(video,sx,sy,sw,sh,0,0,canvas.width,canvas.height);ctx.restore();
+  if(filter!=="original")ctx.putImageData(colourHomePixels(ctx.getImageData(0,0,canvas.width,canvas.height),filter),0,0);
+  if(hat && performance.now()-homeHatSeenAt<700){
+    homeHatPoses.forEach(face=>{
+      let x=(face.x*video.videoWidth-sx)/sw*canvas.width;
+      const y=(face.y*video.videoHeight-sy)/sh*canvas.height,width=face.width*video.videoWidth/sw*canvas.width;
+      if(mirror)x=canvas.width-x;
+      drawNarwhalHat(ctx,x,y,width,mirror?-face.angle:face.angle);
+    });
+  }
+}
+function stopHatTracker(){
+  const t=homeHatTracker;homeHatTracker=null;if(t){clearTimeout(t.timeout);clearTimeout(t.frameTimeout);t.worker.terminate();}
+  homeHatPoses=[];homeHatSeenAt=0;
+}
+function failHomeHat(){
+  stopHatTracker();homeHatEnabled=false;$("homeNarwhalHat").setAttribute("aria-pressed","false");
+  $("homeEffectsStatus").textContent="Face tracking isn’t available right now. You can still use Original, Vintage or Black & white.";
+}
+function ensureHatTracker(){
+  if(homeHatTracker || !homeHatEnabled || !homeCameraStream)return;
+  if(typeof Worker==="undefined" || typeof createImageBitmap==="undefined"){failHomeHat();return;}
+  $("homeEffectsStatus").textContent="Loading the narwhal hat… The first load may take a moment.";
+  try{
+    const worker=new Worker("camera-face-worker.js",{type:"module"});
+    const tracker={worker,ready:false,busy:false,last:0,sequence:0,timeout:null};homeHatTracker=tracker;
+    tracker.timeout=setTimeout(()=>{if(homeHatTracker===tracker)failHomeHat();},25000);
+    worker.onerror=()=>{if(homeHatTracker===tracker)failHomeHat();};
+    worker.onmessage=event=>{
+      if(homeHatTracker!==tracker)return;const result=event.data;
+      if(result.type==="ready"){clearTimeout(tracker.timeout);tracker.ready=true;$("homeEffectsStatus").textContent="Face the camera to wear your narwhal. Try Flip for a selfie.";}
+      else if(result.type==="faces"){
+        clearTimeout(tracker.frameTimeout);tracker.busy=false;homeHatPoses=result.faces;homeHatSeenAt=performance.now();
+        const text=result.faces.length?"Narwhal hat is following your face. Ready for a photo!":"No face in view. Face the camera to try the hat.";
+        if($("homeEffectsStatus").textContent!==text)$("homeEffectsStatus").textContent=text;
+      }else if(result.type==="error")failHomeHat();
+    };
+  }catch{failHomeHat();}
+}
+async function detectHomeHat(video,now){
+  const t=homeHatTracker;if(!t?.ready || t.busy || now-t.last<160)return;
+  t.busy=true;t.last=now;
+  try{
+    const bitmap=await createImageBitmap(video,{resizeWidth:320,resizeHeight:Math.max(1,Math.round(video.videoHeight*320/video.videoWidth))});
+    if(homeHatTracker!==t || !homeHatEnabled || !homeCameraStream){bitmap.close();return;}
+    t.frameTimeout=setTimeout(()=>{if(homeHatTracker===t)failHomeHat();},5000);
+    t.worker.postMessage({type:"frame",bitmap,timestamp:now,sequence:++t.sequence},[bitmap]);
+  }catch{if(homeHatTracker===t)failHomeHat();}
+}
+function stopHomeEffects(){
+  if(homeEffectsFrame!==null)cancelAnimationFrame(homeEffectsFrame);homeEffectsFrame=null;homeEffectsLast=0;
+  stopHatTracker();const canvas=$("homeEffectsCanvas");canvas.hidden=true;
+  const ctx=canvas.getContext("2d");ctx?.clearRect(0,0,canvas.width,canvas.height);
+}
+function startHomeEffects(){
+  if(homeEffectsFrame!==null)cancelAnimationFrame(homeEffectsFrame);homeEffectsFrame=null;
+  if(!homeCameraStream || currentScreen!=="home" || document.hidden)return;
+  if(homeHatEnabled)ensureHatTracker();
+  const canvas=$("homeEffectsCanvas"),video=$("homeCameraVideo");
+  const loop=now=>{
+    if(!homeCameraStream || currentScreen!=="home" || document.hidden){stopHomeEffects();return;}
+    const active=homeColourFilter!=="original" || homeHatEnabled;
+    if(active && video.readyState>=2 && video.videoWidth && now-homeEffectsLast>=80){
+      const rect=$("homeViewfinder").getBoundingClientRect(),width=Math.min(480,Math.round(rect.width)),height=Math.round(width*rect.height/rect.width);
+      if(canvas.width!==width || canvas.height!==height){canvas.width=width;canvas.height=height;}
+      try{drawHomeFrame(canvas,video,homeColourFilter,homeHatEnabled);canvas.hidden=false;}catch{canvas.hidden=true;}
+      homeEffectsLast=now;if(homeHatEnabled)void detectHomeHat(video,now);
+    }else if(!active)canvas.hidden=true;
+    homeEffectsFrame=requestAnimationFrame(loop);
+  };
+  homeEffectsFrame=requestAnimationFrame(loop);
+}

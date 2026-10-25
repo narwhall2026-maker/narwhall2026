@@ -23,11 +23,19 @@
       <div class="camera-home-heading"><div><p>MAKE A LITTLE MEMORY</p><h1>Worth capturing.</h1></div><button type="button" class="home-wall-link" onclick="showScreen('wall')">▧ My wall</button></div>
       <div id="homeViewfinder" class="home-viewfinder">
         <video id="homeCameraVideo" autoplay playsinline muted hidden aria-label="Your camera preview"></video>
+        <canvas id="homeEffectsCanvas" hidden aria-hidden="true"></canvas>
         <div id="homeCameraPlaceholder" class="home-camera-placeholder"><span aria-hidden="true">✧</span><h2>Your next moment.</h2><p>Take a photo or choose one you love.</p><button id="homeEnableCamera" type="button" onclick="startHomeCamera()">Enable camera</button></div>
         <span class="camera-corner corner-tl" aria-hidden="true"></span><span class="camera-corner corner-tr" aria-hidden="true"></span><span class="camera-corner corner-bl" aria-hidden="true"></span><span class="camera-corner corner-br" aria-hidden="true"></span>
         <div class="home-camera-live" id="homeCameraLive" hidden><span aria-hidden="true"></span> CAMERA PREVIEW</div>
       </div>
       <p id="homeCameraStatus" class="home-camera-status" role="status" aria-live="polite">Your camera stays on your device. Review your photo before posting.</p>
+      <div class="home-filter-controls" role="group" aria-label="Camera colour filter">
+        <button type="button" data-camera-filter="original" aria-pressed="true" onclick="setHomeFilter('original')">Original</button>
+        <button type="button" data-camera-filter="vintage" aria-pressed="false" onclick="setHomeFilter('vintage')">Vintage</button>
+        <button type="button" data-camera-filter="mono" aria-pressed="false" onclick="setHomeFilter('mono')">Black &amp; white</button>
+      </div>
+      <div class="home-hat-control"><button id="homeNarwhalHat" type="button" aria-pressed="false" onclick="toggleHomeHat()">🐋 Narwhal hat</button><span>Face tracking stays on your device</span></div>
+      <p id="homeEffectsStatus" role="status" aria-live="polite"></p>
       <div class="home-camera-actions">
         <button id="homeGalleryButton" type="button" class="camera-side-action" onclick="document.getElementById('homeGalleryInput').click()"><span aria-hidden="true">▧</span><span>Gallery</span></button>
         <button id="homeShutter" type="button" class="home-shutter" onclick="action(takeHomePhoto,this)" aria-label="Take a photo"><span aria-hidden="true"></span></button>
